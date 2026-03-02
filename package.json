@@ -1,0 +1,12 @@
+{
+  "name": "dogged-no",
+  "version": "2.0.0",
+  "private": true,
+  "description": "dogged.no — The Official Dogged Headquarters & Idle Clicker Game",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@vercel/kv": "^2.0.0"
+  }
+}

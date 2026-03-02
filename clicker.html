@@ -4,21 +4,31 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dogged Clicker — The Idle Game</title>
-  <meta name="description" content="Click Sigve's face. Earn doggeds. Become the ultimate dogged machine.">
+  <meta name="description" content="Click Sigve. Earn doggeds. Ascend. Become the ultimate dogged machine.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="clicker.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐶</text></svg>">
 </head>
 <body>
-  <!-- Floating particles container -->
+  <!-- Floating particles -->
   <div id="particles"></div>
+
+  <!-- Golden Dogged (random bonus event) -->
+  <div id="goldenDogged" class="golden-dogged hidden">
+    <img src="dogged-guy.jpg" alt="Golden Dogged!" class="golden-img">
+    <span>✨</span>
+  </div>
 
   <!-- Top bar -->
   <header class="top-bar">
-    <a href="index.html" class="back-link">← Back to dogged.no</a>
+    <a href="index.html" class="back-link">← dogged.no</a>
+    <div class="top-center">
+      <span class="prestige-badge" id="prestigeBadge" title="Prestige Level">⭐ 0</span>
+      <span class="souls-display" id="soulsDisplay" title="Dogged Souls">💀 0</span>
+    </div>
     <div class="top-stats">
-      <span class="dps-display">per second: <strong id="dpsDisplay">0</strong></span>
+      <span class="dps-display">/s: <strong id="dpsDisplay">0</strong></span>
     </div>
   </header>
 
@@ -27,24 +37,46 @@
 
     <!-- LEFT: Shop Panel -->
     <aside class="shop-panel" id="shopPanel">
-      <h2>🏪 Dogged Shop</h2>
+      <div class="shop-tabs">
+        <button class="shop-tab active" data-tab="buildings">🏗️ Build</button>
+        <button class="shop-tab" data-tab="upgrades">⬆️ Upgrades</button>
+        <button class="shop-tab" data-tab="prestige-shop">💀 Prestige</button>
+      </div>
 
-      <div class="shop-section">
-        <h3>Buildings</h3>
+      <div class="buy-amount-bar">
+        <button class="buy-amt active" data-amt="1">×1</button>
+        <button class="buy-amt" data-amt="10">×10</button>
+        <button class="buy-amt" data-amt="25">×25</button>
+        <button class="buy-amt" data-amt="max">MAX</button>
+      </div>
+
+      <div class="shop-tab-content active" id="tab-buildings">
         <div id="buildingsContainer"></div>
       </div>
 
-      <div class="shop-section">
-        <h3>Upgrades</h3>
+      <div class="shop-tab-content" id="tab-upgrades">
         <div id="upgradesContainer"></div>
+      </div>
+
+      <div class="shop-tab-content" id="tab-prestige-shop">
+        <div class="prestige-shop-header">
+          <p>Spend 💀 Dogged Souls on permanent boosts that survive ascension.</p>
+          <p class="souls-balance">Balance: <strong id="soulsBalance">0</strong> 💀</p>
+        </div>
+        <div id="prestigeUpgradesContainer"></div>
       </div>
     </aside>
 
     <!-- CENTER: Clicker Area -->
-    <main class="clicker-area">
+    <main class="clicker-area" id="clickerArea">
       <div class="dogged-counter-display">
         <div class="counter-value" id="doggedCount">0</div>
         <div class="counter-label">doggeds</div>
+      </div>
+
+      <div class="multiplier-bar">
+        <span class="mult-item" id="multDisplay" title="Total multiplier">×1.00</span>
+        <span class="mult-item combo-display" id="comboDisplay" title="Click combo">🔥 0</span>
       </div>
 
       <div class="clicker-wrapper">
@@ -55,56 +87,103 @@
         <div class="click-power-display">+<span id="clickPowerDisplay">1</span> per click</div>
       </div>
 
-      <!-- Sigve quotes on click -->
       <div class="sigve-quote" id="sigveQuote"></div>
+
+      <!-- Prestige button -->
+      <div class="prestige-section hidden" id="prestigeSection">
+        <div class="prestige-divider"></div>
+        <p class="prestige-info">Ascend for <strong id="prestigeSoulsPreview">0</strong> 💀 Dogged Souls</p>
+        <button class="prestige-btn" id="prestigeBtn">⭐ DOGGED ASCENSION ⭐</button>
+        <p class="prestige-warning">Resets buildings & upgrades. Keeps souls & prestige upgrades.</p>
+      </div>
     </main>
 
-    <!-- RIGHT: Stats & Achievements -->
+    <!-- RIGHT: Stats, Achievements, Leaderboard -->
     <aside class="stats-panel" id="statsPanel">
-      <h2>📊 Stats</h2>
-      <div class="stats-list">
-        <div class="stat-row">
-          <span>Total doggeds earned:</span>
-          <strong id="statTotalEarned">0</strong>
+      <div class="right-tabs">
+        <button class="right-tab active" data-rtab="stats">📊</button>
+        <button class="right-tab" data-rtab="achievements">🏆</button>
+        <button class="right-tab" data-rtab="leaderboard">🌍</button>
+      </div>
+
+      <div class="right-tab-content active" id="rtab-stats">
+        <h3 class="panel-title">Statistics</h3>
+        <div class="stats-list">
+          <div class="stat-row"><span>Total earned:</span><strong id="statTotalEarned">0</strong></div>
+          <div class="stat-row"><span>This run:</span><strong id="statThisRun">0</strong></div>
+          <div class="stat-row"><span>Total clicks:</span><strong id="statTotalClicks">0</strong></div>
+          <div class="stat-row"><span>Per click:</span><strong id="statPerClick">1</strong></div>
+          <div class="stat-row"><span>Per second:</span><strong id="statPerSecond">0</strong></div>
+          <div class="stat-row"><span>Buildings:</span><strong id="statBuildings">0</strong></div>
+          <div class="stat-row"><span>Prestige level:</span><strong id="statPrestige">0</strong></div>
+          <div class="stat-row"><span>Dogged Souls:</span><strong id="statSouls">0</strong></div>
+          <div class="stat-row"><span>Total souls earned:</span><strong id="statTotalSouls">0</strong></div>
+          <div class="stat-row"><span>Combo record:</span><strong id="statMaxCombo">0</strong></div>
+          <div class="stat-row"><span>Goldens caught:</span><strong id="statGoldens">0</strong></div>
+          <div class="stat-row"><span>Time played:</span><strong id="statTimePlayed">0s</strong></div>
         </div>
-        <div class="stat-row">
-          <span>Total clicks:</span>
-          <strong id="statTotalClicks">0</strong>
-        </div>
-        <div class="stat-row">
-          <span>Doggeds per click:</span>
-          <strong id="statPerClick">1</strong>
-        </div>
-        <div class="stat-row">
-          <span>Doggeds per second:</span>
-          <strong id="statPerSecond">0</strong>
-        </div>
-        <div class="stat-row">
-          <span>Buildings owned:</span>
-          <strong id="statBuildings">0</strong>
-        </div>
-        <div class="stat-row">
-          <span>Time played:</span>
-          <strong id="statTimePlayed">0s</strong>
+        <div class="save-controls">
+          <button class="save-btn" id="saveBtn">💾 Save</button>
+          <button class="save-btn" id="exportBtn">📋 Export</button>
+          <button class="save-btn" id="importBtn">📥 Import</button>
+          <button class="save-btn reset-btn" id="resetBtn">🗑️ Reset</button>
         </div>
       </div>
 
-      <h2 style="margin-top: 1.5rem;">🏆 Achievements</h2>
-      <div id="achievementsContainer" class="achievements-list"></div>
+      <div class="right-tab-content" id="rtab-achievements">
+        <h3 class="panel-title">Achievements <span id="achievementProgress">0/0</span></h3>
+        <div id="achievementsContainer" class="achievements-list"></div>
+      </div>
 
-      <div class="save-controls">
-        <button class="save-btn" id="saveBtn">💾 Save</button>
-        <button class="save-btn reset-btn" id="resetBtn">🗑️ Reset</button>
+      <div class="right-tab-content" id="rtab-leaderboard">
+        <h3 class="panel-title">🌍 Leaderboard</h3>
+        <div class="leaderboard-submit">
+          <input type="text" id="playerName" placeholder="Your name" maxlength="20" class="name-input">
+          <button class="submit-btn" id="submitScoreBtn">Submit</button>
+        </div>
+        <div id="leaderboardList" class="leaderboard-list">
+          <div class="leaderboard-loading">Loading...</div>
+        </div>
+        <button class="refresh-btn" id="refreshLeaderboard">🔄 Refresh</button>
       </div>
     </aside>
   </div>
 
   <!-- Mobile bottom nav -->
   <nav class="mobile-nav">
-    <button class="mobile-nav-btn active" data-panel="clicker">🐶 Click</button>
-    <button class="mobile-nav-btn" data-panel="shop">🏪 Shop</button>
-    <button class="mobile-nav-btn" data-panel="stats">📊 Stats</button>
+    <button class="mobile-nav-btn active" data-panel="clicker">🐶</button>
+    <button class="mobile-nav-btn" data-panel="shop">🏪</button>
+    <button class="mobile-nav-btn" data-panel="stats">📊</button>
   </nav>
+
+  <!-- Prestige modal -->
+  <div class="modal-overlay hidden" id="prestigeModal">
+    <div class="modal">
+      <h2>⭐ Dogged Ascension ⭐</h2>
+      <p>You will earn <strong id="modalSouls">0</strong> 💀 Dogged Souls</p>
+      <div class="modal-details">
+        <p class="modal-reset">🔄 Reset: Buildings, Upgrades, Doggeds</p>
+        <p class="modal-keep">✅ Keep: Souls, Prestige Upgrades, Achievements</p>
+        <p class="modal-bonus">💎 Each soul = +5% permanent production boost</p>
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn confirm" id="confirmPrestige">ASCEND</button>
+        <button class="modal-btn cancel" id="cancelPrestige">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import modal -->
+  <div class="modal-overlay hidden" id="importModal">
+    <div class="modal">
+      <h2>📥 Import Save</h2>
+      <textarea id="importTextarea" class="import-textarea" placeholder="Paste save code here..."></textarea>
+      <div class="modal-buttons">
+        <button class="modal-btn confirm" id="confirmImport">Import</button>
+        <button class="modal-btn cancel" id="cancelImport">Cancel</button>
+      </div>
+    </div>
+  </div>
 
   <script src="clicker.js"></script>
 </body>
