@@ -1,5 +1,10 @@
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
 import crypto from 'crypto';
+
+const kv = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 const LEADERBOARD_KEY = 'dogged:leaderboard';
 const MAX_ENTRIES = 100;
@@ -43,13 +48,12 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       let entries = [];
       try {
-        entries = await kv.get(LEADERBOARD_KEY) || [];
+        entries = (await kv.get(LEADERBOARD_KEY)) || [];
       } catch (e) {
-        // KV not configured — return empty
         return res.status(200).json({
           ok: true,
           leaderboard: [],
-          message: 'Leaderboard not configured yet. Connect Vercel KV to enable.',
+          message: 'Leaderboard not configured yet. Connect Upstash Redis to enable.',
         });
       }
       return res.status(200).json({ ok: true, leaderboard: entries });
@@ -72,7 +76,7 @@ export default async function handler(req, res) {
       // Rate limit check (simple: check if same name submitted in last 60s)
       let entries = [];
       try {
-        entries = await kv.get(LEADERBOARD_KEY) || [];
+        entries = (await kv.get(LEADERBOARD_KEY)) || [];
       } catch (e) {
         return res.status(503).json({ ok: false, error: 'Leaderboard storage not available' });
       }
