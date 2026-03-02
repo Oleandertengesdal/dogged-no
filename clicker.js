@@ -8,7 +8,7 @@
 // ===== ANTI-CHEAT =====
 const AC = {
   SECRET: 'D0GG3D-S1GV3-2026',
-  maxCPS: 25, // max clicks per second
+  maxCPS: 35, // max clicks per second
   clickTimestamps: [],
   lastTickTime: 0,
   integrityWarnings: 0,
