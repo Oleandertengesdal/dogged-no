@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐶</text></svg>">
 </head>
 <body>
@@ -165,16 +166,32 @@
     </div>
   </section>
 
+  <!-- Clicker CTA Banner -->
+  <section class="clicker-banner-section">
+    <div class="clicker-banner">
+      <div class="clicker-banner-glow"></div>
+      <img src="dogged-guy.jpg" alt="" class="clicker-banner-face">
+      <div class="clicker-banner-text">
+        <h2>🎮 DOGGED CLICKER</h2>
+        <p>The idle clicker game. Click Sigve. Earn doggeds. Become him.</p>
+      </div>
+      <a href="clicker.html" class="clicker-banner-btn">PLAY NOW →</a>
+    </div>
+  </section>
+
+  <!-- Dog City Map -->
+  <section class="map-section">
+    <h2>📍 <span class="highlight">Dog City</span> — Official Location</h2>
+    <p class="map-subtitle">He calls it "Dog City." The rest of the world calls it Vadsø. He doesn't care.</p>
+    <div class="map-container">
+      <div id="dogCityMap"></div>
+    </div>
+  </section>
+
   <!-- Interactive Section -->
   <section class="interactive-section">
-    <h2>🎮 The Dogged Clicker Game</h2>
-    <p>Think you can out-dogged Sigve? Play the idle clicker game.</p>
-    <a href="clicker.html" class="clicker-cta">
-      <img src="dogged-guy.jpg" alt="" class="btn-face">
-      <span>PLAY DOGGED CLICKER</span>
-    </a>
-    <p class="cta-subtitle">Cookie Clicker, but dogged. With Sigve's face. You're welcome.</p>
-    <div class="or-divider">— or just click here —</div>
+    <h2>🐶 The Dogged Button</h2>
+    <p>Press it. You know you want to. He would.</p>
     <button class="dogged-button" id="doggedBtn">
       <img src="dogged-guy.jpg" alt="" class="btn-face">
       <span>DOGGED</span>
@@ -217,6 +234,7 @@
     <p class="footer-dogged">dogged dogged dogged dogged dogged dogged dogged dogged dogged dogged</p>
   </footer>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

@@ -317,6 +317,86 @@ function animateTitle() {
   }, 3000);
 }
 
+// ===== DOG CITY MAP =====
+function setupDogCityMap() {
+  const mapEl = document.getElementById('dogCityMap');
+  if (!mapEl || typeof L === 'undefined') return;
+
+  // Vadsø coordinates
+  const vadsoLat = 70.0734;
+  const vadsoLng = 29.7497;
+
+  const map = L.map('dogCityMap', {
+    center: [vadsoLat, vadsoLng],
+    zoom: 5,
+    zoomControl: true,
+    scrollWheelZoom: true,
+  });
+
+  // Dark-themed tiles
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19,
+  }).addTo(map);
+
+  // Custom dog city icon
+  const dogIcon = L.divIcon({
+    html: `<div style="
+      width: 60px; height: 60px; border-radius: 50%;
+      border: 4px solid #ff6b35;
+      box-shadow: 0 0 20px rgba(255,107,53,0.6), 0 0 40px rgba(255,107,53,0.3);
+      overflow: hidden; animation: pulse 2s ease-in-out infinite;
+    "><img src="dogged-guy.jpg" style="width:100%;height:100%;object-fit:cover;" /></div>`,
+    className: 'dog-city-marker',
+    iconSize: [60, 60],
+    iconAnchor: [30, 30],
+    popupAnchor: [0, -35],
+  });
+
+  // Marker
+  const marker = L.marker([vadsoLat, vadsoLng], { icon: dogIcon }).addTo(map);
+
+  // Popup
+  marker.bindPopup(`
+    <div class="dog-city-content">
+      <img src="dogged-guy.jpg" alt="Sigve" />
+      <h3>🐶 DOG CITY 🐶</h3>
+      <p>The official capital of everything dogged. Population: Sigve + an entire city that didn't ask for this.</p>
+      <p class="real-name">Real name: Vadsø — but Sigve doesn't acknowledge that</p>
+    </div>
+  `, {
+    className: 'dog-city-popup',
+    maxWidth: 250,
+  }).openPopup();
+
+  // Add a glowing circle around Dog City
+  L.circle([vadsoLat, vadsoLng], {
+    radius: 15000,
+    color: '#ff6b35',
+    fillColor: '#ff6b35',
+    fillOpacity: 0.08,
+    weight: 2,
+    opacity: 0.5,
+  }).addTo(map);
+
+  // Add a label overlay
+  L.circle([vadsoLat, vadsoLng], {
+    radius: 50000,
+    color: '#ff6b35',
+    fillColor: '#ff6b35',
+    fillOpacity: 0.03,
+    weight: 1,
+    opacity: 0.2,
+    dashArray: '5,10',
+  }).addTo(map).bindTooltip('🐶 DOGGED TERRITORY 🐶', {
+    permanent: true,
+    direction: 'bottom',
+    className: 'dogged-territory-label',
+    offset: [0, 50],
+  });
+}
+
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
   createDoggedRain();
@@ -329,4 +409,5 @@ document.addEventListener('DOMContentLoaded', () => {
   setupCursorTrail();
   setupKonami();
   animateTitle();
+  setupDogCityMap();
 });
