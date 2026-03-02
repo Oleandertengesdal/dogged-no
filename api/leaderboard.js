@@ -1,5 +1,5 @@
-import { Redis } from '@upstash/redis';
-import crypto from 'crypto';
+const { Redis } = require('@upstash/redis');
+const crypto = require('crypto');
 
 const kv = new Redis({
   url: process.env.KV_REST_API_URL,
@@ -33,7 +33,7 @@ function isScorePlausible(data) {
   return true;
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
