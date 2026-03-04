@@ -540,6 +540,21 @@ h2, h3 { font-family: 'Bangers', cursive; letter-spacing: 1.5px; }
 
 .submit-btn:hover { background: #e55a28; }
 
+.tracking-status {
+  font-size: 0.72rem;
+  color: #4caf50;
+  padding: 0.4rem 0.5rem;
+  margin-bottom: 0.5rem;
+  background: rgba(76, 175, 80, 0.08);
+  border: 1px solid rgba(76, 175, 80, 0.2);
+  border-radius: 6px;
+  line-height: 1.4;
+}
+
+.tracking-status strong {
+  color: #81c784;
+}
+
 .leaderboard-list { flex: 1; overflow-y: auto; }
 
 .lb-entry {

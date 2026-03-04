@@ -400,7 +400,7 @@ function cacheDom() {
     'multDisplay', 'comboDisplay', 'achievementProgress',
     'playerName', 'submitScoreBtn', 'leaderboardList', 'refreshLeaderboard',
     'shopPanel', 'statsPanel', 'clickerArea',
-    'realmBadge', 'realmListContainer', 'lbLastUpdated',
+    'realmBadge', 'realmListContainer', 'lbLastUpdated', 'trackingStatus',
   ];
   ids.forEach(id => { DOM[id] = $(id); });
 }
@@ -1363,6 +1363,8 @@ function resetGame() {
 // ===== LEADERBOARD =====
 let leaderboardAutoRefresh = null;
 let lastLeaderboardFetch = 0;
+let scoreAutoSubmitInterval = null;
+const SCORE_NAME_KEY = 'dogged_player_name';
 
 async function fetchLeaderboard(silent = false) {
   const list = DOM.leaderboardList;
@@ -1425,11 +1427,22 @@ function startLeaderboardAutoRefresh() {
   setInterval(updateLeaderboardTimestamp, 30000);
 }
 
-async function submitScore() {
-  const name = DOM.playerName.value.trim();
+async function submitScore(silent = false) {
+  const name = silent
+    ? localStorage.getItem(SCORE_NAME_KEY)
+    : DOM.playerName.value.trim();
+
   if (!name || name.length < 1 || name.length > 20) {
-    showToast('Enter a name (1-20 chars)');
+    if (!silent) showToast('Enter a name (1-20 chars)');
     return;
+  }
+
+  // Save name for future auto-submits
+  if (!silent) {
+    localStorage.setItem(SCORE_NAME_KEY, name);
+    DOM.playerName.value = name;
+    updateTrackingStatus(name);
+    startScoreAutoSubmit();
   }
 
   const ts = Date.now();
@@ -1457,14 +1470,33 @@ async function submitScore() {
 
     const data = await res.json();
     if (data.ok) {
-      showToast(`🌍 Submitted! Rank #${data.rank}`);
-      fetchLeaderboard();
-    } else {
+      if (!silent) showToast(`🌍 Submitted! Rank #${data.rank}`);
+      fetchLeaderboard(true);
+    } else if (!silent) {
       showToast(`❌ ${data.error || 'Submit failed'}`);
     }
   } catch (e) {
-    showToast('❌ Could not submit score');
+    if (!silent) showToast('❌ Could not submit score');
   }
+}
+
+function updateTrackingStatus(name) {
+  const el = DOM.trackingStatus;
+  if (!el) return;
+  if (name) {
+    el.innerHTML = `📡 Tracking as <strong>${escapeHtml(name)}</strong> — score updates every 5 min`;
+    el.classList.remove('hidden');
+  } else {
+    el.classList.add('hidden');
+  }
+}
+
+function startScoreAutoSubmit() {
+  if (scoreAutoSubmitInterval) clearInterval(scoreAutoSubmitInterval);
+  // Submit score silently every 5 minutes
+  scoreAutoSubmitInterval = setInterval(() => {
+    submitScore(true);
+  }, 5 * 60 * 1000);
 }
 
 function escapeHtml(str) {
@@ -1619,6 +1651,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Leaderboard fetch + auto-refresh
   setTimeout(fetchLeaderboard, 2000);
   startLeaderboardAutoRefresh();
+
+  // Restore saved player name and start auto-submit if already registered
+  const savedName = localStorage.getItem(SCORE_NAME_KEY);
+  if (savedName) {
+    DOM.playerName.value = savedName;
+    updateTrackingStatus(savedName);
+    startScoreAutoSubmit();
+    // Submit current score on load so it's always fresh
+    setTimeout(() => submitScore(true), 5000);
+  }
 
   // Apply realm theme on load
   applyRealmTheme();
