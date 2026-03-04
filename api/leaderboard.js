@@ -27,7 +27,8 @@ function verifyPayload(data, signature) {
     console.error('DOGGED_CLIENT_SECRET env var is not set');
     return false;
   }
-  const str = `${data.name}|${data.score}|${data.prestige}|${data.ts}|${CLIENT_SECRET}`;
+  // pid is included in sig so the player ID can't be swapped after signing
+  const str = `${data.name}|${data.score}|${data.prestige}|${data.ts}|${data.pid}|${CLIENT_SECRET}`;
   return simpleHash(str) === signature;
 }
 
@@ -43,6 +44,8 @@ function isScorePlausible(data) {
   if (/<|>|&/.test(data.name)) return false;
   // Prestige must be non-negative integer
   if (data.prestige < 0 || !Number.isInteger(data.prestige)) return false;
+  // pid must be present (UUID-like: 32+ hex chars + dashes)
+  if (!data.pid || typeof data.pid !== 'string' || data.pid.length < 32) return false;
   return true;
 }
 
@@ -88,15 +91,15 @@ module.exports = async function handler(req, res) {
 
     // POST — submit score
     if (req.method === 'POST') {
-      const { name, score, prestige, ts, sig, stats } = req.body;
+      const { name, score, prestige, ts, sig, stats, pid } = req.body;
 
       // Basic validation
-      if (!isScorePlausible({ name, score, prestige, ts })) {
+      if (!isScorePlausible({ name, score, prestige, ts, pid })) {
         return res.status(400).json({ ok: false, error: 'Invalid submission' });
       }
 
       // Verify signature
-      if (!verifyPayload({ name, score, prestige, ts }, sig)) {
+      if (!verifyPayload({ name, score, prestige, ts, pid }, sig)) {
         return res.status(403).json({ ok: false, error: 'Signature mismatch' });
       }
 
@@ -114,25 +117,61 @@ module.exports = async function handler(req, res) {
         return res.status(503).json({ ok: false, error: 'Leaderboard storage not available' });
       }
 
-      const existing = entries.find(e => e.name === name);
-      if (existing && (Date.now() - existing.updatedAt) < 30000) {
-        return res.status(429).json({ ok: false, error: 'Too many submissions. Wait 30 seconds.' });
+      // Find existing entries by this device (pid) or by this name
+      const byPid  = entries.find(e => e.pid  === pid);
+      const byName = entries.find(e => e.name === name);
+
+      // Rate limit: 60 seconds per device
+      if (byPid && (Date.now() - byPid.updatedAt) < 60000) {
+        return res.status(429).json({ ok: false, error: 'Too many submissions. Wait 60 seconds.' });
       }
 
-      // Update or insert
-      if (existing) {
-        if (score > existing.score) {
-          existing.score = score;
-          existing.prestige = prestige;
-          existing.realm = stats?.realm || 'prime';
-          existing.stats = stats || {};
-          existing.updatedAt = Date.now();
+      // Reject if the name is already claimed by a different device.
+      // Exception: if the existing entry has no pid (legacy entry), the first
+      // device to submit that name claims it.
+      if (byName && byName.pid && byName.pid !== pid) {
+        return res.status(409).json({ ok: false, error: 'Name already taken by another player. Choose a different name.' });
+      }
+
+      // Update or insert — always one entry per pid
+      if (byPid) {
+        // Device already has an entry; update it (allows name changes too)
+        if (byPid.name !== name) {
+          // Name changed — remove old entry so no duplicate names exist
+          entries = entries.filter(e => e.pid !== pid);
+          entries.push({
+            name, score, prestige, pid,
+            realm: stats?.realm || 'prime',
+            stats: stats || {},
+            createdAt: byPid.createdAt || Date.now(),
+            updatedAt: Date.now(),
+          });
+        } else if (score > byPid.score) {
+          byPid.score = score;
+          byPid.prestige = prestige;
+          byPid.realm = stats?.realm || 'prime';
+          byPid.stats = stats || {};
+          byPid.updatedAt = Date.now();
+        } else {
+          // Score didn't improve — still update prestige/realm but keep score
+          byPid.prestige = prestige;
+          byPid.realm = stats?.realm || 'prime';
+          byPid.stats = stats || {};
+          byPid.updatedAt = Date.now();
         }
+      } else if (byName) {
+        // Legacy entry (no pid): claim it by assigning this pid, update score
+        byName.pid = pid;
+        if (score > byName.score) {
+          byName.score = score;
+          byName.prestige = prestige;
+          byName.realm = stats?.realm || 'prime';
+          byName.stats = stats || {};
+        }
+        byName.updatedAt = Date.now();
       } else {
         entries.push({
-          name,
-          score,
-          prestige,
+          name, score, prestige, pid,
           realm: stats?.realm || 'prime',
           stats: stats || {},
           createdAt: Date.now(),

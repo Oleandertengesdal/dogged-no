@@ -70,7 +70,8 @@ const AC = {
 
   // Fixed: deterministic string hash matching server-side algorithm
   async hmac(data) {
-    const str = `${data.name}|${data.score}|${data.prestige}|${data.ts}|${this.SECRET}`;
+    // pid is included so the device identity is baked into the signature
+    const str = `${data.name}|${data.score}|${data.prestige}|${data.ts}|${data.pid}|${this.SECRET}`;
     return this.hash(str);
   },
 
@@ -1475,6 +1476,20 @@ let leaderboardAutoRefresh = null;
 let lastLeaderboardFetch = 0;
 let scoreAutoSubmitInterval = null;
 const SCORE_NAME_KEY = 'dogged_player_name';
+const PLAYER_ID_KEY  = 'dogged_player_id';
+
+// Returns a persistent UUID for this browser/device, creating one if needed
+function getOrCreatePlayerId() {
+  let pid = localStorage.getItem(PLAYER_ID_KEY);
+  if (!pid) {
+    pid = (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    }));
+    localStorage.setItem(PLAYER_ID_KEY, pid);
+  }
+  return pid;
+}
 
 async function fetchLeaderboard(silent = false) {
   const list = DOM.leaderboardList;
@@ -1547,10 +1562,14 @@ async function submitScore(silent = false) {
     return;
   }
 
-  // Save name for future auto-submits
+  const pid = getOrCreatePlayerId();
+
+  // Save name for future auto-submits and lock the input
   if (!silent) {
     localStorage.setItem(SCORE_NAME_KEY, name);
     DOM.playerName.value = name;
+    DOM.playerName.readOnly = true;
+    DOM.playerName.title = 'Name locked — clears on full reset';
     updateTrackingStatus(name);
     startScoreAutoSubmit();
   }
@@ -1561,6 +1580,7 @@ async function submitScore(silent = false) {
     score: Math.floor(game.totalEarned),
     prestige: game.prestigeLevel,
     ts,
+    pid,
     stats: {
       clicks: game.totalClicks,
       dps: Math.floor(game.dps),
@@ -1594,7 +1614,7 @@ function updateTrackingStatus(name) {
   const el = DOM.trackingStatus;
   if (!el) return;
   if (name) {
-    el.innerHTML = `📡 Tracking as <strong>${escapeHtml(name)}</strong> — score updates every 5 min`;
+    el.innerHTML = `📡 Tracking as <strong>${escapeHtml(name)}</strong> — score updates every 1 min`;
     el.classList.remove('hidden');
   } else {
     el.classList.add('hidden');
@@ -1603,10 +1623,10 @@ function updateTrackingStatus(name) {
 
 function startScoreAutoSubmit() {
   if (scoreAutoSubmitInterval) clearInterval(scoreAutoSubmitInterval);
-  // Submit score silently every 5 minutes
+  // Submit score silently every 1 minute
   scoreAutoSubmitInterval = setInterval(() => {
     submitScore(true);
-  }, 5 * 60 * 1000);
+  }, 1 * 60 * 1000);
 }
 
 function escapeHtml(str) {
@@ -1766,6 +1786,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const savedName = localStorage.getItem(SCORE_NAME_KEY);
   if (savedName) {
     DOM.playerName.value = savedName;
+    DOM.playerName.readOnly = true;
+    DOM.playerName.title = 'Name locked — clears on full reset';
     updateTrackingStatus(savedName);
     startScoreAutoSubmit();
     // Submit current score on load so it's always fresh
