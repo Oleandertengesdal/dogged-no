@@ -1,9 +1,11 @@
 // ============================================================
-// DOGGED CLICKER v3 — Full Idle Game Engine with Realms
+// DOGGED CLICKER v3.1 — Full Idle Game Engine with Realms
 // ============================================================
 
 (() => {
 'use strict';
+
+const GAME_VERSION = '3.1';
 
 // ===== ANTI-CHEAT =====
 const AC = {
@@ -902,7 +904,7 @@ function doPrestige() {
 
   DOM.prestigeModal.classList.add('hidden');
 
-  saveGame();
+  saveGame(true); // save silently — ascension toast is shown separately
   renderShop();
   renderAchievements();
   updateDisplay();
@@ -1305,7 +1307,8 @@ function gameTick() {
 }
 
 // ===== SAVE / LOAD =====
-const SAVE_KEY = 'dogged_clicker_v3'; // bumped to v3 — wipes all existing saves
+const SAVE_KEY = 'dogged_clicker_v3';
+let lastAutoSaveTime = 0;
 
 function getSaveData() {
   const data = {
@@ -1339,12 +1342,13 @@ function getSaveData() {
   return data;
 }
 
-function saveGame() {
+function saveGame(silent = false) {
   const data = getSaveData();
   // XOR-encode the JSON — raw localStorage value is no longer valid JSON,
   // making manual save editing via the console non-trivial.
   localStorage.setItem(SAVE_KEY, AC.encodeSave(JSON.stringify(data)));
-  showToast('💾 Saved!');
+  lastAutoSaveTime = Date.now();
+  if (!silent) showToast('💾 Saved!');
 }
 
 function loadGame() {
@@ -1415,7 +1419,11 @@ function loadGame() {
         game.totalEarned += offlineEarned;
         game.totalEarnedThisRun += offlineEarned;
 
-        showToast(`💤 +${formatNumber(offlineEarned)} doggeds earned offline (${formatTime(offlineSeconds)})`);
+        // Store for dismissible banner (shown after DOM is ready)
+        game._offlineBanner = {
+          earned: offlineEarned,
+          time: offlineSeconds,
+        };
       }
     }
 
@@ -1468,6 +1476,8 @@ function resetGame() {
   if (!confirm('Reset ALL progress? This cannot be undone!')) return;
   if (!confirm('Are you REALLY sure? All doggeds, souls, everything — gone forever.')) return;
   localStorage.removeItem(SAVE_KEY);
+  localStorage.removeItem(SCORE_NAME_KEY);
+  localStorage.removeItem(PLAYER_ID_KEY);
   location.reload();
 }
 
@@ -1726,11 +1736,15 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// ===== AUTO-SAVE =====
+// ===== AUTO-SAVE (XOR-encoded, every 10s) =====
 setInterval(() => {
-  const data = getSaveData();
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-}, 30000);
+  saveGame(true);
+}, 10000);
+
+// Save on page unload so no progress is lost on refresh/close
+window.addEventListener('beforeunload', () => {
+  saveGame(true);
+});
 
 // ===== ANTI-DEVTOOLS (light) =====
 setInterval(() => {
@@ -1751,9 +1765,28 @@ document.addEventListener('DOMContentLoaded', () => {
   renderAchievements();
   updateDisplay();
 
+  // Show offline earnings banner if applicable
+  if (game._offlineBanner) {
+    const b = game._offlineBanner;
+    const banner = document.createElement('div');
+    banner.className = 'offline-banner';
+    banner.innerHTML = `
+      <div class=\"offline-banner-content\">
+        <strong>\ud83d\udc4b Welcome back!</strong>
+        <span>You earned <strong>${formatNumber(b.earned)}</strong> doggeds while away (${formatTime(b.time)})</span>
+      </div>
+      <button class=\"offline-banner-close\">\u2715</button>
+    `;
+    banner.querySelector('.offline-banner-close').addEventListener('click', () => banner.remove());
+    document.body.appendChild(banner);
+    // Auto-dismiss after 10 seconds
+    setTimeout(() => { if (banner.parentNode) banner.remove(); }, 10000);
+    delete game._offlineBanner;
+  }
+
   // Events
   DOM.bigClicker.addEventListener('click', handleClick);
-  DOM.saveBtn.addEventListener('click', saveGame);
+  DOM.saveBtn.addEventListener('click', () => saveGame(false));
   DOM.exportBtn.addEventListener('click', exportSave);
   DOM.importBtn.addEventListener('click', importSave);
   DOM.resetBtn.addEventListener('click', resetGame);
@@ -1796,6 +1829,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Apply realm theme on load
   applyRealmTheme();
+
+  // Version migration: clear old save keys so everyone is on the same version
+  const oldKeys = ['dogged_clicker_save', 'dogged_clicker_v1', 'dogged_clicker_v2'];
+  oldKeys.forEach(k => localStorage.removeItem(k));
+
+  // Version indicator
+  const versionEl = document.createElement('div');
+  versionEl.className = 'version-indicator';
+  versionEl.textContent = `v${GAME_VERSION}`;
+  document.body.appendChild(versionEl);
+
+  // Auto-save status indicator
+  const saveIndicator = document.createElement('div');
+  saveIndicator.className = 'save-indicator';
+  saveIndicator.id = 'saveIndicator';
+  saveIndicator.textContent = '💾 Saved';
+  document.body.appendChild(saveIndicator);
+  setInterval(() => {
+    if (!lastAutoSaveTime) return;
+    const ago = Math.floor((Date.now() - lastAutoSaveTime) / 1000);
+    saveIndicator.textContent = ago < 3 ? '💾 Saved' : `💾 ${ago}s ago`;
+    saveIndicator.classList.toggle('fresh', ago < 3);
+  }, 1000);
 });
 
 // ===== REALM THEME =====
