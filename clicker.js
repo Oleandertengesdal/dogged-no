@@ -1305,7 +1305,7 @@ function gameTick() {
 }
 
 // ===== SAVE / LOAD =====
-const SAVE_KEY = 'dogged_clicker_v2';
+const SAVE_KEY = 'dogged_clicker_v3'; // bumped to v3 — wipes all existing saves
 
 function getSaveData() {
   const data = {

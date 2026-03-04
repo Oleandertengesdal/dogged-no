@@ -52,7 +52,7 @@ function isScorePlausible(data) {
 module.exports = async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -192,6 +192,17 @@ module.exports = async function handler(req, res) {
 
       const rank = entries.findIndex(e => e.name === name) + 1;
       return res.status(200).json({ ok: true, rank, total: entries.length });
+    }
+
+    // DELETE — admin wipe of the entire leaderboard
+    if (req.method === 'DELETE') {
+      const adminToken = process.env.DOGGED_ADMIN_TOKEN;
+      const provided   = req.headers['x-admin-token'] || req.query.token;
+      if (!adminToken || provided !== adminToken) {
+        return res.status(403).json({ ok: false, error: 'Forbidden' });
+      }
+      await kv.del(LEADERBOARD_KEY);
+      return res.status(200).json({ ok: true, message: 'Leaderboard wiped.' });
     }
 
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
