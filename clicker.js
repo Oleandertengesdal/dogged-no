@@ -1,5 +1,5 @@
 // ============================================================
-// DOGGED CLICKER v2 — Full Idle Game Engine
+// DOGGED CLICKER v3 — Full Idle Game Engine with Realms
 // ============================================================
 
 (() => {
@@ -8,21 +8,18 @@
 // ===== ANTI-CHEAT =====
 const AC = {
   SECRET: 'D0GG3D-S1GV3-2026',
-  maxCPS: 35, // max clicks per second
+  maxCPS: 35,
   clickTimestamps: [],
   lastTickTime: 0,
   integrityWarnings: 0,
 
-  // Rate limit clicks
   canClick() {
     const now = Date.now();
     this.clickTimestamps.push(now);
-    // Keep only last 1 second of clicks
     this.clickTimestamps = this.clickTimestamps.filter(t => now - t < 1000);
     return this.clickTimestamps.length <= this.maxCPS;
   },
 
-  // Simple hash for save integrity
   hash(str) {
     let h = 0;
     for (let i = 0; i < str.length; i++) {
@@ -33,37 +30,32 @@ const AC = {
     return (h >>> 0).toString(36);
   },
 
-  // Create checksum for save data
   checksum(data) {
     const core = `${data.totalEarned}|${data.totalClicks}|${data.prestigeLevel}|${this.SECRET}`;
     return this.hash(core);
   },
 
-  // HMAC for leaderboard submission
+  // Fixed: deterministic string hash matching server-side algorithm
   async hmac(data) {
-    const msg = JSON.stringify({ name: data.name, score: data.score, prestige: data.prestige, ts: data.ts });
-    // Simple client-side hash (server does real HMAC)
-    return this.hash(msg + this.SECRET);
+    const str = `${data.name}|${data.score}|${data.prestige}|${data.ts}|${this.SECRET}`;
+    return this.hash(str);
   },
 
-  // Validate save data integrity
   validate(data) {
     if (!data || !data._checksum) return false;
     const expected = this.checksum(data);
     if (data._checksum !== expected) {
       this.integrityWarnings++;
-      return this.integrityWarnings <= 3; // Allow a few mismatches (version upgrades etc)
+      return this.integrityWarnings <= 3;
     }
     return true;
   },
 
-  // Validate numbers aren't ridiculous
   sanityCheck(game) {
-    // Max theoretical DPS after long play with many prestiges
-    const maxReasonableDPS = 1e18;
+    const maxReasonableDPS = 1e20;
     if (game.dps > maxReasonableDPS) return false;
     if (game.doggeds < 0 || game.totalEarned < 0) return false;
-    if (game.clickMultiplier > 1e10) return false;
+    if (game.clickMultiplier > 1e12) return false;
     return true;
   }
 };
@@ -85,11 +77,80 @@ const BUILDINGS = [
   { id: 'godmode',    name: 'The Dogged Itself',   icon: '👁️', desc: 'You have become dogged incarnate',          baseCost: 1.5e13,       baseDps: 6.5e7  },
 ];
 
+// ===== REALMS — Unlockable dimensions with different modifiers =====
+const REALMS = [
+  {
+    id: 'prime',
+    name: 'Dogged Prime',
+    icon: '🌍',
+    desc: 'The original reality. Standard gameplay.',
+    costMult: 1,
+    dpsMult: 1,
+    clickMult: 1,
+    soulMult: 1,
+    goldenEnabled: true,
+    unlock: 0,
+    color: '#4caf50',
+  },
+  {
+    id: 'frost',
+    name: 'Frozen Dogged',
+    icon: '❄️',
+    desc: 'A frozen dimension. Costs ×2.5, Clicks ×0.5, DPS ×1.3, Souls ×2.',
+    costMult: 2.5,
+    dpsMult: 1.3,
+    clickMult: 0.5,
+    soulMult: 2,
+    goldenEnabled: true,
+    unlock: 5,
+    color: '#64b5f6',
+  },
+  {
+    id: 'inferno',
+    name: 'Dogged Inferno',
+    icon: '🔥',
+    desc: 'Hellish costs. No golden doggeds. Costs ×5, DPS ×2, Souls ×5.',
+    costMult: 5,
+    dpsMult: 2,
+    clickMult: 0.3,
+    soulMult: 5,
+    goldenEnabled: false,
+    unlock: 15,
+    color: '#ef5350',
+  },
+  {
+    id: 'void',
+    name: 'The Void',
+    icon: '🕳️',
+    desc: 'Costs ×20, Clicks ×0.1, DPS ×3, Souls ×15. True darkness.',
+    costMult: 20,
+    dpsMult: 3,
+    clickMult: 0.1,
+    soulMult: 15,
+    goldenEnabled: true,
+    unlock: 35,
+    color: '#9c27b0',
+  },
+  {
+    id: 'beyond',
+    name: 'The Beyond',
+    icon: '✨',
+    desc: 'Costs ×100, Clicks ×0.05, DPS ×5, Souls ×50. The ultimate test.',
+    costMult: 100,
+    dpsMult: 5,
+    clickMult: 0.05,
+    soulMult: 50,
+    goldenEnabled: false,
+    unlock: 75,
+    color: '#ffd700',
+  },
+];
+
 const COST_MULTIPLIER = 1.15;
 
 // Upgrades: tiered per building + click upgrades + synergy + global
 const UPGRADES = [
-  // Click multipliers (increasingly expensive)
+  // Click multipliers
   { id: 'click1',  name: 'Stronger Finger',    icon: '👆',  desc: 'Clicks ×2',                  cost: 100,       type: 'click_mult', value: 2,  clicks: 1 },
   { id: 'click2',  name: 'Double Tap',         icon: '✌️',  desc: 'Clicks ×2',                  cost: 5000,      type: 'click_mult', value: 2,  clicks: 1 },
   { id: 'click3',  name: 'Power Slap',         icon: '🫲',  desc: 'Clicks ×3',                  cost: 50000,     type: 'click_mult', value: 3,  clicks: 3 },
@@ -97,7 +158,7 @@ const UPGRADES = [
   { id: 'click5',  name: 'Mind Click',         icon: '🧠',  desc: 'Clicks ×10',                 cost: 5e8,       type: 'click_mult', value: 10, clicks: 10 },
   { id: 'click6',  name: 'Dogged Telekinesis', icon: '🔮',  desc: 'Clicks ×25',                 cost: 5e11,      type: 'click_mult', value: 25, clicks: 15 },
 
-  // Building tier upgrades (at 10, 25, 50, 100, 150, 200)
+  // Building tier upgrades
   ...generateBuildingUpgrades(),
 
   // Global multipliers
@@ -108,21 +169,24 @@ const UPGRADES = [
   { id: 'dogged_god',   name: 'Dogged God Mode',   icon: '⚡', desc: 'All production ×2',      cost: 5e13,      type: 'global_mult', value: 2.00, clicks: 10 },
 
   // Synergy upgrades
-  { id: 'syn_echo_parrot',   name: 'Echo Chamber',     icon: '📣', desc: 'Echoes + Parrots synergy: both ×1.5',   cost: 2000,    type: 'synergy', buildings: ['echo', 'parrot'], value: 1.5, req: { buildings: { echo: 5, parrot: 5 } }, clicks: 1 },
+  { id: 'syn_echo_parrot',   name: 'Echo Chamber',       icon: '📣', desc: 'Echoes + Parrots synergy: both ×1.5',    cost: 2000,    type: 'synergy', buildings: ['echo', 'parrot'], value: 1.5, req: { buildings: { echo: 5, parrot: 5 } }, clicks: 1 },
   { id: 'syn_chat_printer',  name: 'Spam Infrastructure', icon: '🖥️', desc: 'Chat Bots + Printers synergy: both ×1.5', cost: 100000, type: 'synergy', buildings: ['groupchat', 'printer'], value: 1.5, req: { buildings: { groupchat: 10, printer: 10 } }, clicks: 2 },
-  { id: 'syn_factory_uni',   name: 'Industrial Studies', icon: '📚', desc: 'Factory + Uni synergy: both ×2',       cost: 15e6,    type: 'synergy', buildings: ['factory', 'university'], value: 2, req: { buildings: { factory: 15, university: 15 } }, clicks: 3 },
-  { id: 'syn_sat_clone',     name: 'Space Clones',       icon: '👽', desc: 'Satellites + Clones synergy: both ×2', cost: 5e9,     type: 'synergy', buildings: ['satellite', 'clonelab'], value: 2, req: { buildings: { satellite: 10, clonelab: 10 } }, clicks: 3 },
-  { id: 'syn_dim_sing',      name: 'Reality Collapse',   icon: '💥', desc: 'Dimensions + Singularities: both ×3', cost: 5e12,    type: 'synergy', buildings: ['dimension', 'singularity'], value: 3, req: { buildings: { dimension: 5, singularity: 5 } }, clicks: 5 },
+  { id: 'syn_factory_uni',   name: 'Industrial Studies',  icon: '📚', desc: 'Factory + Uni synergy: both ×2',         cost: 15e6,    type: 'synergy', buildings: ['factory', 'university'], value: 2, req: { buildings: { factory: 15, university: 15 } }, clicks: 3 },
+  { id: 'syn_sat_clone',     name: 'Space Clones',        icon: '👽', desc: 'Satellites + Clones synergy: both ×2',   cost: 5e9,     type: 'synergy', buildings: ['satellite', 'clonelab'], value: 2, req: { buildings: { satellite: 10, clonelab: 10 } }, clicks: 3 },
+  { id: 'syn_dim_sing',      name: 'Reality Collapse',    icon: '💥', desc: 'Dimensions + Singularities: both ×3',   cost: 5e12,    type: 'synergy', buildings: ['dimension', 'singularity'], value: 3, req: { buildings: { dimension: 5, singularity: 5 } }, clicks: 5 },
+  { id: 'syn_hive_god',      name: 'Singularity Nexus',   icon: '🌀', desc: 'Hivemind + Dogged Itself: both ×3',     cost: 5e14,    type: 'synergy', buildings: ['hivemind', 'godmode'], value: 3, req: { buildings: { hivemind: 5, godmode: 5 } }, clicks: 8 },
 ];
 
 function generateBuildingUpgrades() {
   const tiers = [
-    { count: 10,  mult: 2,  suffix: 'I',   clicksNeeded: 1 },
-    { count: 25,  mult: 2,  suffix: 'II',  clicksNeeded: 2 },
-    { count: 50,  mult: 2,  suffix: 'III', clicksNeeded: 3 },
-    { count: 100, mult: 3,  suffix: 'IV',  clicksNeeded: 5 },
-    { count: 150, mult: 3,  suffix: 'V',   clicksNeeded: 7 },
-    { count: 200, mult: 5,  suffix: 'VI',  clicksNeeded: 10 },
+    { count: 10,  mult: 2,  suffix: 'I',    clicksNeeded: 1 },
+    { count: 25,  mult: 2,  suffix: 'II',   clicksNeeded: 2 },
+    { count: 50,  mult: 2,  suffix: 'III',  clicksNeeded: 3 },
+    { count: 100, mult: 3,  suffix: 'IV',   clicksNeeded: 5 },
+    { count: 150, mult: 3,  suffix: 'V',    clicksNeeded: 7 },
+    { count: 200, mult: 4,  suffix: 'VI',   clicksNeeded: 10 },
+    { count: 300, mult: 5,  suffix: 'VII',  clicksNeeded: 15 },
+    { count: 400, mult: 5,  suffix: 'VIII', clicksNeeded: 20 },
   ];
 
   const results = [];
@@ -146,59 +210,118 @@ function generateBuildingUpgrades() {
   return results;
 }
 
-// Prestige upgrades (bought with souls)
+// Prestige upgrades (bought with souls) — REBALANCED: costs significantly increased
 const PRESTIGE_UPGRADES = [
-  { id: 'p_click1',     name: 'Soulful Click',     icon: '💀👆', desc: 'Start with ×2 click power after ascension', cost: 1,   effect: 'start_click_mult', value: 2 },
-  { id: 'p_click2',     name: 'Ghost Click',        icon: '👻👆', desc: 'Start with ×5 click power after ascension', cost: 5,   effect: 'start_click_mult', value: 5 },
-  { id: 'p_cheapBuild', name: 'Soul Discount',      icon: '💀🏷️', desc: 'All buildings cost 10% less',              cost: 3,   effect: 'building_discount', value: 0.90 },
-  { id: 'p_cheapBuild2',name: 'Deep Discount',      icon: '💀💰', desc: 'All buildings cost 20% less',              cost: 10,  effect: 'building_discount', value: 0.80 },
-  { id: 'p_golden1',    name: 'Lucky Dogged',       icon: '🍀',    desc: 'Golden doggeds appear 2× more often',     cost: 5,   effect: 'golden_freq', value: 2 },
-  { id: 'p_golden2',    name: 'Golden Magnet',      icon: '🧲',    desc: 'Golden doggeds give 3× reward',           cost: 10,  effect: 'golden_mult', value: 3 },
-  { id: 'p_golden3',    name: 'Golden Age',         icon: '👑',    desc: 'Golden doggeds last 2× longer',           cost: 8,   effect: 'golden_duration', value: 2 },
-  { id: 'p_offline',    name: 'Dream Doggeds',      icon: '💤',    desc: 'Earn 50% production while offline',       cost: 15,  effect: 'offline_mult', value: 0.5 },
-  { id: 'p_offline2',   name: 'Sleepwalking Sigve', icon: '🌙',    desc: 'Earn 100% production while offline',      cost: 50,  effect: 'offline_mult', value: 1.0 },
-  { id: 'p_combo',      name: 'Combo Master',       icon: '🔥',    desc: 'Click combos give 2× bonus',             cost: 8,   effect: 'combo_mult', value: 2 },
-  { id: 'p_soul_boost', name: 'Soul Harvester',     icon: '⚡💀',  desc: 'Earn 50% more souls on ascension',       cost: 25,  effect: 'soul_bonus', value: 1.5 },
-  { id: 'p_soul_boost2',name: 'Supreme Harvester',  icon: '🔥💀',  desc: 'Earn 100% more souls on ascension',      cost: 75,  effect: 'soul_bonus', value: 2.0 },
-  { id: 'p_start_dps',  name: 'Head Start',         icon: '🚀',    desc: 'Start each run with 10 of first building',cost: 20,  effect: 'start_buildings', value: 10 },
-  { id: 'p_crit',       name: 'Critical Dogged',    icon: '💥',    desc: '5% chance for 10× click',                 cost: 15,  effect: 'crit_chance', value: 0.05 },
-  { id: 'p_crit2',      name: 'Super Critical',     icon: '🌋',    desc: '10% chance for 25× click',                cost: 50,  effect: 'crit_chance', value: 0.10 },
+  // --- Early tier (affordable after 2-3 ascensions) ---
+  { id: 'p_click1',     name: 'Soulful Click',      icon: '💀👆', desc: 'Start with ×2 click power after ascension',  cost: 5,    effect: 'start_click_mult', value: 2 },
+  { id: 'p_cheapBuild', name: 'Soul Discount',       icon: '💀🏷️', desc: 'All buildings cost 5% less',                cost: 8,    effect: 'building_discount', value: 0.95 },
+  { id: 'p_combo',      name: 'Combo Master',        icon: '🔥',    desc: 'Click combos give 2× bonus',              cost: 12,   effect: 'combo_mult', value: 2 },
+  { id: 'p_golden1',    name: 'Lucky Dogged',        icon: '🍀',    desc: 'Golden doggeds appear 50% more often',     cost: 15,   effect: 'golden_freq', value: 1.5 },
+
+  // --- Mid tier (requires 5-10 ascensions) ---
+  { id: 'p_click2',     name: 'Ghost Click',         icon: '👻👆', desc: 'Start with ×3 click power after ascension',  cost: 25,   effect: 'start_click_mult', value: 3 },
+  { id: 'p_cheapBuild2',name: 'Deep Discount',       icon: '💀💰', desc: 'All buildings cost 10% less',               cost: 35,   effect: 'building_discount', value: 0.90 },
+  { id: 'p_golden2',    name: 'Golden Magnet',       icon: '🧲',    desc: 'Golden doggeds give 2× reward',            cost: 30,   effect: 'golden_mult', value: 2 },
+  { id: 'p_golden3',    name: 'Golden Age',          icon: '👑',    desc: 'Golden doggeds last 2× longer',            cost: 25,   effect: 'golden_duration', value: 2 },
+  { id: 'p_crit',       name: 'Critical Dogged',     icon: '💥',    desc: '5% chance for 10× click',                  cost: 40,   effect: 'crit_chance', value: 0.05 },
+  { id: 'p_offline',    name: 'Dream Doggeds',       icon: '💤',    desc: 'Earn 25% production while offline',        cost: 50,   effect: 'offline_mult', value: 0.25 },
+
+  // --- Late tier (requires 15-25 ascensions or hard realm runs) ---
+  { id: 'p_soul_boost', name: 'Soul Harvester',      icon: '⚡💀',  desc: 'Earn 25% more souls on ascension',        cost: 75,   effect: 'soul_bonus', value: 1.25 },
+  { id: 'p_start_dps',  name: 'Head Start',          icon: '🚀',    desc: 'Start each run with 10 of first building', cost: 60,   effect: 'start_buildings', value: 10 },
+  { id: 'p_crit2',      name: 'Super Critical',      icon: '🌋',    desc: '10% chance for 25× click',                 cost: 100,  effect: 'crit_chance', value: 0.10 },
+  { id: 'p_offline2',   name: 'Sleepwalking Sigve',  icon: '🌙',    desc: 'Earn 50% production while offline',        cost: 120,  effect: 'offline_mult', value: 0.5 },
+  { id: 'p_cheapBuild3',name: 'Dogged Bargain',      icon: '🏷️✨', desc: 'All buildings cost 15% less',              cost: 100,  effect: 'building_discount', value: 0.85 },
+
+  // --- Endgame tier (requires many ascensions or high realm runs) ---
+  { id: 'p_soul_boost2',name: 'Supreme Harvester',   icon: '🔥💀',  desc: 'Earn 50% more souls on ascension',        cost: 200,  effect: 'soul_bonus', value: 1.5 },
+  { id: 'p_click3',     name: 'Phantom Touch',       icon: '👻✨', desc: 'Start with ×5 click power after ascension',  cost: 150, effect: 'start_click_mult', value: 5 },
+  { id: 'p_golden4',    name: 'Golden God',          icon: '🌟🧲', desc: 'Golden doggeds give 3× reward & appear 2× more', cost: 180, effect: 'golden_mult', value: 3 },
+  { id: 'p_combo2',     name: 'Combo Legend',        icon: '🔥🔥', desc: 'Click combos give 3× bonus',              cost: 160,  effect: 'combo_mult', value: 3 },
+  { id: 'p_offline3',   name: 'Eternal Dreamer',     icon: '💫',    desc: 'Earn 100% production while offline',       cost: 300,  effect: 'offline_mult', value: 1.0 },
+  { id: 'p_start_dps2', name: 'Dogged Kickstart',    icon: '🚀🚀', desc: 'Start each run with 25 of first 2 buildings', cost: 250, effect: 'start_buildings', value: 25 },
+
+  // --- Realm mastery tier ---
+  { id: 'p_realm_frost',  name: 'Frostwalker',       icon: '❄️💀', desc: 'Frost realm costs reduced by 20%',         cost: 100,  effect: 'realm_discount_frost', value: 0.8 },
+  { id: 'p_realm_inferno',name: 'Fireproof',         icon: '🔥💀', desc: 'Inferno realm costs reduced by 20%',       cost: 200,  effect: 'realm_discount_inferno', value: 0.8 },
+  { id: 'p_realm_void',   name: 'Void Walker',       icon: '🕳️💀', desc: 'Void realm costs reduced by 25%',         cost: 400,  effect: 'realm_discount_void', value: 0.75 },
+  { id: 'p_realm_beyond', name: 'Transcendent',      icon: '✨💀', desc: 'Beyond realm costs reduced by 30%',       cost: 800,  effect: 'realm_discount_beyond', value: 0.70 },
 ];
 
-// Achievements
+// ===== ACHIEVEMENTS =====
 const ACHIEVEMENTS = [
-  { id: 'click1',     name: 'First!',            icon: '👶', desc: '1 click',                    check: g => g.totalClicks >= 1 },
-  { id: 'click100',   name: 'Clicker',           icon: '👆', desc: '100 clicks',                  check: g => g.totalClicks >= 100 },
-  { id: 'click1k',    name: 'Carpal Tunnel',     icon: '🤕', desc: '1,000 clicks',                check: g => g.totalClicks >= 1000 },
-  { id: 'click10k',   name: 'Finger Destroyer',  icon: '💀', desc: '10,000 clicks',               check: g => g.totalClicks >= 10000 },
-  { id: 'click100k',  name: 'Machine Gun',       icon: '🔫', desc: '100,000 clicks',              check: g => g.totalClicks >= 100000 },
-  { id: 'earn100',    name: 'Starter',            icon: '🌱', desc: 'Earn 100 doggeds',           check: g => g.totalEarned >= 100 },
-  { id: 'earn1k',     name: 'Getting There',      icon: '📈', desc: 'Earn 1K doggeds',            check: g => g.totalEarned >= 1000 },
-  { id: 'earn1m',     name: 'Mega Dogged',        icon: '🚀', desc: 'Earn 1M doggeds',            check: g => g.totalEarned >= 1e6 },
-  { id: 'earn1b',     name: 'Giga Dogged',        icon: '🌍', desc: 'Earn 1B doggeds',            check: g => g.totalEarned >= 1e9 },
-  { id: 'earn1t',     name: 'Tera Dogged',        icon: '🌌', desc: 'Earn 1T doggeds',            check: g => g.totalEarned >= 1e12 },
-  { id: 'earn1q',     name: 'Quadrillion Dogged', icon: '🕳️', desc: 'Earn 1Q doggeds',           check: g => g.totalEarned >= 1e15 },
-  { id: 'build1',     name: 'Investor',            icon: '📈', desc: 'Buy first building',        check: g => getTotalBuildings(g) >= 1 },
-  { id: 'build50',    name: 'Tycoon',              icon: '🏢', desc: 'Own 50 buildings',           check: g => getTotalBuildings(g) >= 50 },
-  { id: 'build100',   name: 'Empire',              icon: '👑', desc: 'Own 100 buildings',          check: g => getTotalBuildings(g) >= 100 },
-  { id: 'build500',   name: 'Dogged Dynasty',      icon: '🏰', desc: 'Own 500 buildings',          check: g => getTotalBuildings(g) >= 500 },
-  { id: 'dps100',     name: 'Passive Income',      icon: '💤', desc: '100/s',                      check: g => g.dps >= 100 },
-  { id: 'dps10k',     name: 'Dogged Machine',      icon: '⚙️', desc: '10K/s',                     check: g => g.dps >= 10000 },
-  { id: 'dps1m',      name: 'Unstoppable',         icon: '🔥', desc: '1M/s',                       check: g => g.dps >= 1e6 },
-  { id: 'dps1b',      name: 'Dogged Overload',     icon: '💥', desc: '1B/s',                       check: g => g.dps >= 1e9 },
-  { id: 'prestige1',  name: 'Ascended',            icon: '⭐', desc: 'Prestige for the first time', check: g => g.prestigeLevel >= 1 },
-  { id: 'prestige5',  name: 'Veteran',             icon: '🎖️', desc: 'Prestige 5 times',          check: g => g.prestigeLevel >= 5 },
-  { id: 'prestige10', name: 'Eternal Dogged',      icon: '♾️', desc: 'Prestige 10 times',          check: g => g.prestigeLevel >= 10 },
-  { id: 'prestige25', name: 'Dogged God',          icon: '🙏', desc: 'Prestige 25 times',          check: g => g.prestigeLevel >= 25 },
-  { id: 'golden1',    name: 'Lucky!',              icon: '🍀', desc: 'Catch a golden dogged',      check: g => g.goldensCaught >= 1 },
-  { id: 'golden10',   name: 'Golden Hunter',       icon: '🏹', desc: 'Catch 10 golden doggeds',    check: g => g.goldensCaught >= 10 },
-  { id: 'golden50',   name: 'Midas Touch',         icon: '✨', desc: 'Catch 50 golden doggeds',    check: g => g.goldensCaught >= 50 },
-  { id: 'combo25',    name: 'Combo Starter',       icon: '🔥', desc: '25× click combo',            check: g => g.maxCombo >= 25 },
-  { id: 'combo100',   name: 'Combo King',          icon: '👑', desc: '100× click combo',           check: g => g.maxCombo >= 100 },
-  { id: 'combo500',   name: 'Combo Legend',        icon: '🏆', desc: '500× click combo',           check: g => g.maxCombo >= 500 },
-  { id: 'allbuilds',  name: 'Collector',           icon: '🎯', desc: 'Own 1 of every building',   check: g => BUILDINGS.every(b => (g.buildings[b.id]?.count || 0) >= 1) },
-  { id: 'souls100',   name: 'Soul Collector',      icon: '💀', desc: 'Earn 100 total souls',       check: g => g.totalSoulsEarned >= 100 },
-  { id: 'souls1k',    name: 'Soul Lord',           icon: '☠️', desc: 'Earn 1000 total souls',     check: g => g.totalSoulsEarned >= 1000 },
+  // Click milestones
+  { id: 'click1',     name: 'First!',            icon: '👶', desc: '1 click',                     check: g => g.totalClicks >= 1 },
+  { id: 'click100',   name: 'Clicker',           icon: '👆', desc: '100 clicks',                   check: g => g.totalClicks >= 100 },
+  { id: 'click1k',    name: 'Carpal Tunnel',     icon: '🤕', desc: '1,000 clicks',                 check: g => g.totalClicks >= 1000 },
+  { id: 'click10k',   name: 'Finger Destroyer',  icon: '💀', desc: '10,000 clicks',                check: g => g.totalClicks >= 10000 },
+  { id: 'click100k',  name: 'Machine Gun',       icon: '🔫', desc: '100,000 clicks',               check: g => g.totalClicks >= 100000 },
+  { id: 'click1m',    name: 'Click Deity',       icon: '🖱️', desc: '1,000,000 clicks',             check: g => g.totalClicks >= 1000000 },
+
+  // Earning milestones
+  { id: 'earn100',    name: 'Starter',            icon: '🌱', desc: 'Earn 100 doggeds',            check: g => g.totalEarned >= 100 },
+  { id: 'earn1k',     name: 'Getting There',      icon: '📈', desc: 'Earn 1K doggeds',             check: g => g.totalEarned >= 1000 },
+  { id: 'earn1m',     name: 'Mega Dogged',        icon: '🚀', desc: 'Earn 1M doggeds',             check: g => g.totalEarned >= 1e6 },
+  { id: 'earn1b',     name: 'Giga Dogged',        icon: '🌍', desc: 'Earn 1B doggeds',             check: g => g.totalEarned >= 1e9 },
+  { id: 'earn1t',     name: 'Tera Dogged',        icon: '🌌', desc: 'Earn 1T doggeds',             check: g => g.totalEarned >= 1e12 },
+  { id: 'earn1q',     name: 'Quadrillion Dogged', icon: '🕳️', desc: 'Earn 1Q doggeds',            check: g => g.totalEarned >= 1e15 },
+  { id: 'earn1qi',    name: 'Beyond Counting',    icon: '♾️', desc: 'Earn 1 Quintillion doggeds',  check: g => g.totalEarned >= 1e18 },
+
+  // Building milestones
+  { id: 'build1',     name: 'Investor',            icon: '📈', desc: 'Buy first building',         check: g => getTotalBuildings(g) >= 1 },
+  { id: 'build50',    name: 'Tycoon',              icon: '🏢', desc: 'Own 50 buildings',            check: g => getTotalBuildings(g) >= 50 },
+  { id: 'build100',   name: 'Empire',              icon: '👑', desc: 'Own 100 buildings',           check: g => getTotalBuildings(g) >= 100 },
+  { id: 'build500',   name: 'Dogged Dynasty',      icon: '🏰', desc: 'Own 500 buildings',           check: g => getTotalBuildings(g) >= 500 },
+  { id: 'build1000',  name: 'Mega Corporation',    icon: '🌐', desc: 'Own 1000 buildings',          check: g => getTotalBuildings(g) >= 1000 },
+  { id: 'build2000',  name: 'Universal Empire',    icon: '🌠', desc: 'Own 2000 buildings',          check: g => getTotalBuildings(g) >= 2000 },
+
+  // DPS milestones
+  { id: 'dps100',     name: 'Passive Income',      icon: '💤', desc: '100/s',                       check: g => g.dps >= 100 },
+  { id: 'dps10k',     name: 'Dogged Machine',      icon: '⚙️', desc: '10K/s',                      check: g => g.dps >= 10000 },
+  { id: 'dps1m',      name: 'Unstoppable',         icon: '🔥', desc: '1M/s',                        check: g => g.dps >= 1e6 },
+  { id: 'dps1b',      name: 'Dogged Overload',     icon: '💥', desc: '1B/s',                        check: g => g.dps >= 1e9 },
+  { id: 'dps1t',      name: 'Tera Power',          icon: '⚡', desc: '1T/s',                        check: g => g.dps >= 1e12 },
+  { id: 'dps1q',      name: 'Infinite Engine',     icon: '🌀', desc: '1Q/s',                        check: g => g.dps >= 1e15 },
+
+  // Prestige milestones
+  { id: 'prestige1',  name: 'Ascended',            icon: '⭐', desc: 'Prestige for the first time',  check: g => g.prestigeLevel >= 1 },
+  { id: 'prestige5',  name: 'Veteran',             icon: '🎖️', desc: 'Prestige 5 times',           check: g => g.prestigeLevel >= 5 },
+  { id: 'prestige10', name: 'Eternal Dogged',      icon: '♾️', desc: 'Prestige 10 times',           check: g => g.prestigeLevel >= 10 },
+  { id: 'prestige25', name: 'Dogged God',          icon: '🙏', desc: 'Prestige 25 times',           check: g => g.prestigeLevel >= 25 },
+  { id: 'prestige50', name: 'Dogged Ascendant',    icon: '🔱', desc: 'Prestige 50 times',           check: g => g.prestigeLevel >= 50 },
+  { id: 'prestige100',name: 'Dogged Eternal',      icon: '🏛️', desc: 'Prestige 100 times',         check: g => g.prestigeLevel >= 100 },
+
+  // Golden doggeds
+  { id: 'golden1',    name: 'Lucky!',              icon: '🍀', desc: 'Catch a golden dogged',       check: g => g.goldensCaught >= 1 },
+  { id: 'golden10',   name: 'Golden Hunter',       icon: '🏹', desc: 'Catch 10 golden doggeds',     check: g => g.goldensCaught >= 10 },
+  { id: 'golden50',   name: 'Midas Touch',         icon: '✨', desc: 'Catch 50 golden doggeds',     check: g => g.goldensCaught >= 50 },
+  { id: 'golden200',  name: 'Golden Legend',        icon: '🌟', desc: 'Catch 200 golden doggeds',   check: g => g.goldensCaught >= 200 },
+
+  // Combos
+  { id: 'combo25',    name: 'Combo Starter',       icon: '🔥', desc: '25× click combo',             check: g => g.maxCombo >= 25 },
+  { id: 'combo100',   name: 'Combo King',          icon: '👑', desc: '100× click combo',            check: g => g.maxCombo >= 100 },
+  { id: 'combo500',   name: 'Combo Legend',        icon: '🏆', desc: '500× click combo',            check: g => g.maxCombo >= 500 },
+
+  // Collection
+  { id: 'allbuilds',  name: 'Collector',           icon: '🎯', desc: 'Own 1 of every building',    check: g => BUILDINGS.every(b => (g.buildings[b.id]?.count || 0) >= 1) },
+
+  // Souls
+  { id: 'souls50',    name: 'Soul Collector',      icon: '💀', desc: 'Earn 50 total souls',         check: g => g.totalSoulsEarned >= 50 },
+  { id: 'souls200',   name: 'Soul Lord',           icon: '☠️', desc: 'Earn 200 total souls',       check: g => g.totalSoulsEarned >= 200 },
+  { id: 'souls1k',    name: 'Soul Emperor',        icon: '💀👑', desc: 'Earn 1000 total souls',    check: g => g.totalSoulsEarned >= 1000 },
+  { id: 'souls5k',    name: 'Soul God',            icon: '💀🌟', desc: 'Earn 5000 total souls',    check: g => g.totalSoulsEarned >= 5000 },
+
+  // Realm achievements
+  { id: 'realm_frost',   name: 'Frost Pioneer',    icon: '❄️', desc: 'Complete a run in Frozen Dogged',  check: g => g.realmCompletions?.frost >= 1 },
+  { id: 'realm_inferno', name: 'Hellwalker',        icon: '🔥', desc: 'Complete a run in Dogged Inferno', check: g => g.realmCompletions?.inferno >= 1 },
+  { id: 'realm_void',    name: 'Void Touched',      icon: '🕳️', desc: 'Complete a run in The Void',      check: g => g.realmCompletions?.void >= 1 },
+  { id: 'realm_beyond',  name: 'Beyond Mortal',     icon: '✨', desc: 'Complete a run in The Beyond',     check: g => g.realmCompletions?.beyond >= 1 },
+  { id: 'realm_master',  name: 'Realm Master',      icon: '🌈', desc: 'Complete a run in every realm',    check: g => REALMS.every(r => r.id === 'prime' || (g.realmCompletions?.[r.id] || 0) >= 1) },
+
+  // Specific building milestones
+  { id: 'echo100',     name: 'Echo Lord',           icon: '🗣️', desc: 'Own 100 Echoes',             check: g => (g.buildings.echo?.count || 0) >= 100 },
+  { id: 'godmode10',   name: 'Dogged Pantheon',     icon: '👁️', desc: 'Own 10 Dogged Itself',        check: g => (g.buildings.godmode?.count || 0) >= 10 },
+  { id: 'godmode50',   name: 'Omnidogged',          icon: '👁️🌟', desc: 'Own 50 Dogged Itself',      check: g => (g.buildings.godmode?.count || 0) >= 50 },
 ];
 
 const CLICK_QUOTES = [
@@ -212,6 +335,18 @@ const CLICK_QUOTES = [
   '*clears throat* "dogged"', '"everything is dogged if you believe"',
   '"Dog City represent 🐶"', '"Vadsø? You mean Dog City."',
   '"dogged? dogged."',
+  '"I dream in dogged."', '"My first word was dogged."',
+  '"Sigve would be proud."', '"dogged transcends language."',
+  '"They said I couldn\'t dogged. I dogged."',
+  '"In a world of dogs, be dogged."',
+  '"My ancestors smile upon my dogged."',
+  '"Is this dogged? No, this is Patrick."',
+  '"One does not simply stop being dogged."',
+  '"Dogged is not a hobby. It\'s a calling."',
+  '"The void whispers: dogged."',
+  '"I have seen the beyond. It\'s dogged."',
+  '"Reality is just concentrated dogged."',
+  '"E = mc dogged"', '"To dogged or not to dogged? dogged."',
 ];
 
 // ===== GAME STATE =====
@@ -224,8 +359,8 @@ const game = {
   clickMultiplier: 1,
   dps: 0,
   buildings: {},
-  upgrades: {},         // { id: true }
-  upgradeProgress: {},  // { id: clicksSoFar } for multi-click
+  upgrades: {},
+  upgradeProgress: {},
   achievements: {},
   prestigeLevel: 0,
   souls: 0,
@@ -238,7 +373,13 @@ const game = {
   startTime: Date.now(),
   lastSave: Date.now(),
   lastTick: Date.now(),
-  buyAmount: 1, // 1, 10, 25, 'max'
+  buyAmount: 1,
+  // v3 additions
+  realm: 'prime',
+  selectedRealm: 'prime',
+  realmCompletions: {},
+  runStartTime: Date.now(),
+  fastestRun: {},
 };
 
 // ===== DOM CACHE =====
@@ -250,15 +391,16 @@ function cacheDom() {
     'sigveQuote', 'buildingsContainer', 'upgradesContainer', 'achievementsContainer',
     'prestigeUpgradesContainer', 'statTotalEarned', 'statThisRun', 'statTotalClicks',
     'statPerClick', 'statPerSecond', 'statBuildings', 'statPrestige', 'statSouls',
-    'statTotalSouls', 'statMaxCombo', 'statGoldens', 'statTimePlayed',
+    'statTotalSouls', 'statMaxCombo', 'statGoldens', 'statTimePlayed', 'statRealm',
     'saveBtn', 'exportBtn', 'importBtn', 'resetBtn', 'particles',
     'prestigeSection', 'prestigeSoulsPreview', 'prestigeBtn',
-    'prestigeModal', 'modalSouls', 'confirmPrestige', 'cancelPrestige',
+    'prestigeModal', 'modalSouls', 'modalRealmInfo', 'confirmPrestige', 'cancelPrestige',
     'importModal', 'importTextarea', 'confirmImport', 'cancelImport',
     'goldenDogged', 'prestigeBadge', 'soulsDisplay', 'soulsBalance',
     'multDisplay', 'comboDisplay', 'achievementProgress',
     'playerName', 'submitScoreBtn', 'leaderboardList', 'refreshLeaderboard',
     'shopPanel', 'statsPanel', 'clickerArea',
+    'realmBadge', 'realmListContainer',
   ];
   ids.forEach(id => { DOM[id] = $(id); });
 }
@@ -282,6 +424,50 @@ function getTotalBuildings(g) {
   return Object.values(g.buildings).reduce((s, b) => s + (b.count || 0), 0);
 }
 
+function formatTime(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+// ===== REALM HELPERS =====
+function getCurrentRealm() {
+  return REALMS.find(r => r.id === game.realm) || REALMS[0];
+}
+
+function getRealmCostMult() {
+  const realm = getCurrentRealm();
+  let mult = realm.costMult;
+
+  // Apply realm-specific prestige discounts
+  const realmDiscountKey = `realm_discount_${realm.id}`;
+  for (const pu of PRESTIGE_UPGRADES) {
+    if (game.prestigeUpgrades[pu.id] && pu.effect === realmDiscountKey) {
+      mult *= pu.value;
+    }
+  }
+  return mult;
+}
+
+function getRealmDpsMult() {
+  return getCurrentRealm().dpsMult;
+}
+
+function getRealmClickMult() {
+  return getCurrentRealm().clickMult;
+}
+
+function getRealmSoulMult() {
+  return getCurrentRealm().soulMult;
+}
+
+function isRealmUnlocked(realm) {
+  return game.prestigeLevel >= realm.unlock;
+}
+
 // ===== PRESTIGE HELPERS =====
 function getPrestigeEffect(effectType) {
   let value = effectType === 'building_discount' ? 1 :
@@ -289,7 +475,7 @@ function getPrestigeEffect(effectType) {
               effectType === 'golden_freq' ? 1 :
               effectType === 'golden_mult' ? 1 :
               effectType === 'golden_duration' ? 1 :
-              effectType === 'offline_mult' ? 0.1 : // base 10% offline
+              effectType === 'offline_mult' ? 0 :
               effectType === 'combo_mult' ? 1 :
               effectType === 'crit_chance' ? 0 :
               effectType === 'start_click_mult' ? 1 :
@@ -299,11 +485,11 @@ function getPrestigeEffect(effectType) {
   for (const pu of PRESTIGE_UPGRADES) {
     if (game.prestigeUpgrades[pu.id] && pu.effect === effectType) {
       if (effectType === 'building_discount') value *= pu.value;
-      else if (effectType === 'soul_bonus') value = Math.max(value, pu.value);
+      else if (effectType === 'soul_bonus') value *= pu.value;
       else if (effectType === 'crit_chance') value = Math.max(value, pu.value);
       else if (effectType === 'offline_mult') value = Math.max(value, pu.value);
       else if (effectType === 'start_click_mult') value *= pu.value;
-      else if (effectType === 'start_buildings') value += pu.value;
+      else if (effectType === 'start_buildings') value = Math.max(value, pu.value);
       else value *= pu.value;
     }
   }
@@ -311,23 +497,39 @@ function getPrestigeEffect(effectType) {
 }
 
 function getSoulsForCurrentRun() {
-  // Souls = floor(sqrt(totalEarnedThisRun / 1e9))
-  const base = Math.floor(Math.pow(game.totalEarnedThisRun / 1e9, 0.5));
+  // REBALANCED: Much harder to earn souls. Base requirement: 1T earned this run for 1 soul.
+  // Uses 0.45 exponent (slower than sqrt) for diminishing returns at high numbers.
+  const base = Math.floor(Math.pow(game.totalEarnedThisRun / 1e12, 0.45));
   const soulBonus = getPrestigeEffect('soul_bonus');
-  return Math.floor(base * soulBonus);
+  const realmMult = getRealmSoulMult();
+  return Math.floor(base * soulBonus * realmMult);
 }
 
 function getSoulBoostMultiplier() {
-  return 1 + (game.souls * 0.05); // +5% per soul
+  // REBALANCED: Diminishing returns on soul boost
+  // First 50 souls: +2% each = up to 2.0x
+  // Next 100 souls: +1% each = up to 3.0x
+  // Beyond 150: +0.5% each (slow scaling)
+  const s = game.souls;
+  let bonus = 0;
+  if (s <= 50) {
+    bonus = s * 0.02;
+  } else if (s <= 150) {
+    bonus = 50 * 0.02 + (s - 50) * 0.01;
+  } else {
+    bonus = 50 * 0.02 + 100 * 0.01 + (s - 150) * 0.005;
+  }
+  return 1 + bonus;
 }
 
 // ===== COST CALCULATIONS =====
 function getBuildingCost(buildingData, amount = 1) {
   const count = game.buildings[buildingData.id]?.count || 0;
   const discount = getPrestigeEffect('building_discount');
+  const realmCost = getRealmCostMult();
   let total = 0;
   for (let i = 0; i < amount; i++) {
-    total += Math.floor(buildingData.baseCost * Math.pow(COST_MULTIPLIER, count + i) * discount);
+    total += Math.floor(buildingData.baseCost * Math.pow(COST_MULTIPLIER, count + i) * discount * realmCost);
   }
   return total;
 }
@@ -335,14 +537,15 @@ function getBuildingCost(buildingData, amount = 1) {
 function getMaxAffordable(buildingData) {
   const count = game.buildings[buildingData.id]?.count || 0;
   const discount = getPrestigeEffect('building_discount');
+  const realmCost = getRealmCostMult();
   let total = 0;
   let n = 0;
   while (true) {
-    const next = Math.floor(buildingData.baseCost * Math.pow(COST_MULTIPLIER, count + n) * discount);
+    const next = Math.floor(buildingData.baseCost * Math.pow(COST_MULTIPLIER, count + n) * discount * realmCost);
     if (total + next > game.doggeds) break;
     total += next;
     n++;
-    if (n > 1000) break; // safety
+    if (n > 1000) break;
   }
   return Math.max(n, 0);
 }
@@ -356,7 +559,10 @@ function getEffectiveBuyAmount(buildingData) {
 function getClickValue() {
   let base = game.clickPower * game.clickMultiplier;
 
-  // Combo bonus: +1% per combo, capped at 100%
+  // Realm click modifier
+  base *= getRealmClickMult();
+
+  // Combo bonus: +1% per combo, capped at 500
   const comboMult = getPrestigeEffect('combo_mult');
   const comboBonus = 1 + (Math.min(game.combo, 500) * 0.01 * comboMult);
   base *= comboBonus;
@@ -386,6 +592,9 @@ function recalculateDps() {
   // Soul boost
   globalMult *= getSoulBoostMultiplier();
 
+  // Realm DPS multiplier
+  globalMult *= getRealmDpsMult();
+
   let total = 0;
   for (const b of BUILDINGS) {
     const state = game.buildings[b.id];
@@ -414,7 +623,7 @@ function showToast(message) {
 
 // ===== CLICK HANDLER =====
 function handleClick(e) {
-  if (!AC.canClick()) return; // Rate limited
+  if (!AC.canClick()) return;
 
   const { value, isCrit } = getClickValue();
   game.doggeds += value;
@@ -549,7 +758,6 @@ function purchaseUpgrade(upgradeData) {
       game.buildings[bid].multiplier *= upgradeData.value;
     }
   }
-  // global_mult applied in recalculateDps
 
   recalculateDps();
   renderShop();
@@ -578,10 +786,22 @@ function buyPrestigeUpgrade(pu) {
 function showPrestigeModal() {
   const souls = getSoulsForCurrentRun();
   if (souls < 1) {
-    showToast('Need at least 1B total earned to ascend!');
+    const realm = getCurrentRealm();
+    const needed = realm.id === 'prime' ? '1T' : formatNumber(1e12 / realm.soulMult);
+    showToast(`Need at least ~1T total earned this run to ascend!`);
     return;
   }
   DOM.modalSouls.textContent = formatNumber(souls);
+
+  // Show realm info in modal
+  const selectedRealm = REALMS.find(r => r.id === game.selectedRealm) || REALMS[0];
+  if (DOM.modalRealmInfo) {
+    DOM.modalRealmInfo.innerHTML = `
+      <p class="modal-realm">🌍 Next realm: <strong style="color:${selectedRealm.color}">${selectedRealm.icon} ${selectedRealm.name}</strong></p>
+      <p class="modal-realm-desc" style="font-size:0.75rem;color:#888">${selectedRealm.desc}</p>
+    `;
+  }
+
   DOM.prestigeModal.classList.remove('hidden');
 }
 
@@ -589,9 +809,26 @@ function doPrestige() {
   const souls = getSoulsForCurrentRun();
   if (souls < 1) return;
 
+  // Track realm completion (only if earned souls > 0)
+  const currentRealm = getCurrentRealm();
+  if (currentRealm.id !== 'prime') {
+    if (!game.realmCompletions[currentRealm.id]) game.realmCompletions[currentRealm.id] = 0;
+    game.realmCompletions[currentRealm.id]++;
+  }
+
+  // Track run time
+  const runTime = (Date.now() - game.runStartTime) / 1000;
+  const realmId = currentRealm.id;
+  if (!game.fastestRun[realmId] || runTime < game.fastestRun[realmId]) {
+    game.fastestRun[realmId] = Math.floor(runTime);
+  }
+
   game.souls += souls;
   game.totalSoulsEarned += souls;
   game.prestigeLevel++;
+
+  // Switch to selected realm
+  game.realm = game.selectedRealm || 'prime';
 
   // Reset run-specific state
   game.doggeds = 0;
@@ -602,11 +839,16 @@ function doPrestige() {
   game.clickPower = 1;
   game.clickMultiplier = getPrestigeEffect('start_click_mult');
   game.combo = 0;
+  game.runStartTime = Date.now();
 
   // Apply start buildings prestige effect
   const startBuildings = getPrestigeEffect('start_buildings');
   if (startBuildings > 0) {
     game.buildings['echo'] = { count: startBuildings, multiplier: 1 };
+    // p_start_dps2 gives 25 and also adds parrots
+    if (startBuildings >= 25) {
+      game.buildings['parrot'] = { count: startBuildings, multiplier: 1 };
+    }
   }
 
   recalculateDps();
@@ -618,15 +860,17 @@ function doPrestige() {
   renderAchievements();
   updateDisplay();
 
-  showToast(`⭐ Ascended! +${souls} souls (Level ${game.prestigeLevel})`);
+  showToast(`⭐ Ascended! +${souls} 💀 (Level ${game.prestigeLevel}) → ${getCurrentRealm().icon} ${getCurrentRealm().name}`);
 }
 
 // ===== GOLDEN DOGGED =====
 let goldenTimeout = null;
 
 function scheduleGolden() {
+  // Don't schedule if realm disables golden doggeds
+  if (!getCurrentRealm().goldenEnabled) return;
+
   const freqMult = getPrestigeEffect('golden_freq');
-  // Base: 2-5 minutes
   const minDelay = 120000 / freqMult;
   const maxDelay = 300000 / freqMult;
   const delay = minDelay + Math.random() * (maxDelay - minDelay);
@@ -635,16 +879,16 @@ function scheduleGolden() {
 }
 
 function spawnGoldenDogged() {
+  if (!getCurrentRealm().goldenEnabled) return;
+
   const el = DOM.goldenDogged;
   el.classList.remove('hidden');
 
-  // Random position
   const x = 100 + Math.random() * (window.innerWidth - 200);
   const y = 100 + Math.random() * (window.innerHeight - 200);
   el.style.left = x + 'px';
   el.style.top = y + 'px';
 
-  // Auto-hide after duration
   const durMult = getPrestigeEffect('golden_duration');
   const duration = 10000 * durMult;
 
@@ -653,7 +897,6 @@ function spawnGoldenDogged() {
     scheduleGolden();
   }, duration);
 
-  // Click handler
   const clickHandler = () => {
     el.classList.add('hidden');
     clearTimeout(hideTimer);
@@ -669,28 +912,27 @@ function collectGolden() {
   game.goldensCaught++;
   const rewardMult = getPrestigeEffect('golden_mult');
 
-  // Random reward type
   const roll = Math.random();
   let reward;
 
   if (roll < 0.5) {
-    // Dogged rain: earn X seconds of production
-    const seconds = 30 + Math.random() * 270; // 30-300 seconds
+    // Dogged rain: NERFED — 13-77 seconds of production (was 30-300)
+    const seconds = 13 + Math.random() * 64;
     const amount = game.dps * seconds * rewardMult;
     game.doggeds += amount;
     game.totalEarned += amount;
     game.totalEarnedThisRun += amount;
     reward = `🌧️ Dogged Rain! +${formatNumber(amount)} doggeds`;
   } else if (roll < 0.8) {
-    // Click frenzy: massive click bonus for a bit
-    const amount = getClickValue().value * 777 * rewardMult;
+    // Click frenzy: NERFED from 777x to 200x
+    const amount = getClickValue().value * 200 * rewardMult;
     game.doggeds += amount;
     game.totalEarned += amount;
     game.totalEarnedThisRun += amount;
     reward = `👆 Click Frenzy! +${formatNumber(amount)} doggeds`;
   } else {
-    // Lucky: flat bonus based on total earned
-    const amount = game.totalEarnedThisRun * 0.05 * rewardMult;
+    // Lucky: NERFED from 5% to 2% of run earnings
+    const amount = game.totalEarnedThisRun * 0.02 * rewardMult;
     game.doggeds += amount;
     game.totalEarned += amount;
     game.totalEarnedThisRun += amount;
@@ -747,7 +989,6 @@ function renderUpgrades() {
   for (const u of UPGRADES) {
     if (game.upgrades[u.id]) continue;
 
-    // Check requirements visibility
     if (u.req) {
       if (u.req.building) {
         const count = game.buildings[u.req.building]?.count || 0;
@@ -795,6 +1036,51 @@ function renderPrestigeShop() {
 
   DOM.soulsBalance.textContent = formatNumber(game.souls);
 
+  // --- Realm Selector ---
+  if (game.prestigeLevel >= 1) {
+    const realmSection = document.createElement('div');
+    realmSection.className = 'realm-section';
+    realmSection.innerHTML = `<h4 class="realm-section-title">🌍 Realms <span style="font-size:0.7rem;color:#888">(next ascension)</span></h4>`;
+
+    for (const realm of REALMS) {
+      const unlocked = isRealmUnlocked(realm);
+      const isSelected = game.selectedRealm === realm.id;
+      const isCurrent = game.realm === realm.id;
+      const completions = game.realmCompletions[realm.id] || 0;
+
+      const el = document.createElement('div');
+      el.className = `shop-item realm-item ${isSelected ? 'realm-selected' : ''} ${!unlocked ? 'realm-locked' : ''}`;
+      el.style.borderColor = unlocked ? realm.color : '';
+      el.innerHTML = `
+        <div class="shop-item-icon">${unlocked ? realm.icon : '🔒'}</div>
+        <div class="shop-item-info">
+          <div class="shop-item-name" style="color:${unlocked ? realm.color : '#555'}">${realm.name}${isCurrent ? ' 📍' : ''}${isSelected && !isCurrent ? ' ✓' : ''}</div>
+          <div class="shop-item-desc">${unlocked ? realm.desc : `Unlocks at Prestige ${realm.unlock}`}</div>
+          ${unlocked && realm.id !== 'prime' ? `<div class="shop-item-cost" style="color:${realm.color}">Completed: ${completions}×${game.fastestRun[realm.id] ? ` · Best: ${formatTime(game.fastestRun[realm.id])}` : ''}</div>` : ''}
+        </div>
+        ${unlocked && !isSelected ? '<div class="realm-select-tag">SELECT</div>' : ''}
+        ${isSelected ? '<div class="realm-select-tag selected">SELECTED</div>' : ''}
+      `;
+      if (unlocked && !isSelected) {
+        el.addEventListener('click', () => {
+          game.selectedRealm = realm.id;
+          renderPrestigeShop();
+          showToast(`${realm.icon} ${realm.name} selected for next ascension`);
+        });
+      }
+      realmSection.appendChild(el);
+    }
+
+    c.appendChild(realmSection);
+
+    // Divider
+    const divider = document.createElement('div');
+    divider.className = 'prestige-shop-divider';
+    divider.innerHTML = '<h4 class="realm-section-title">💀 Permanent Upgrades</h4>';
+    c.appendChild(divider);
+  }
+
+  // --- Prestige Upgrades ---
   for (const pu of PRESTIGE_UPGRADES) {
     const owned = game.prestigeUpgrades[pu.id];
     const canAfford = game.souls >= pu.cost;
@@ -867,6 +1153,15 @@ function updateDisplay() {
   DOM.prestigeBadge.textContent = `⭐ ${game.prestigeLevel}`;
   DOM.soulsDisplay.textContent = `💀 ${formatNumber(game.souls)}`;
 
+  // Realm badge
+  const realm = getCurrentRealm();
+  if (DOM.realmBadge) {
+    DOM.realmBadge.textContent = `${realm.icon} ${realm.name}`;
+    DOM.realmBadge.style.color = realm.color;
+    DOM.realmBadge.style.borderColor = realm.color + '55';
+    DOM.realmBadge.style.background = realm.color + '15';
+  }
+
   // Stats
   DOM.statTotalEarned.textContent = formatNumber(game.totalEarned);
   DOM.statThisRun.textContent = formatNumber(game.totalEarnedThisRun);
@@ -880,11 +1175,13 @@ function updateDisplay() {
   DOM.statMaxCombo.textContent = game.maxCombo;
   DOM.statGoldens.textContent = game.goldensCaught;
 
+  if (DOM.statRealm) {
+    DOM.statRealm.textContent = `${realm.icon} ${realm.name}`;
+    DOM.statRealm.style.color = realm.color;
+  }
+
   const seconds = Math.floor((Date.now() - game.startTime) / 1000);
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  DOM.statTimePlayed.textContent = h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+  DOM.statTimePlayed.textContent = formatTime(seconds);
 
   // Prestige section visibility
   const potentialSouls = getSoulsForCurrentRun();
@@ -904,7 +1201,6 @@ function gameTick() {
   const delta = (now - game.lastTick) / 1000;
   game.lastTick = now;
 
-  // Safety: max 60s catch-up per tick
   const safeDelta = Math.min(delta, 60);
 
   if (game.dps > 0) {
@@ -914,16 +1210,14 @@ function gameTick() {
     game.totalEarnedThisRun += earned;
   }
 
-  // Sanity check
   if (!AC.sanityCheck(game)) {
     console.warn('Anti-cheat: sanity check failed');
   }
 
   updateDisplay();
 
-  // Render shop less frequently
   shopRenderCounter++;
-  if (shopRenderCounter >= 30) { // ~1s at 30fps
+  if (shopRenderCounter >= 30) {
     shopRenderCounter = 0;
     renderShop();
     checkAchievements();
@@ -953,7 +1247,13 @@ function getSaveData() {
     maxCombo: game.maxCombo,
     startTime: game.startTime,
     lastSave: Date.now(),
-    version: 2,
+    // v3 fields
+    realm: game.realm,
+    selectedRealm: game.selectedRealm,
+    realmCompletions: game.realmCompletions,
+    runStartTime: game.runStartTime,
+    fastestRun: game.fastestRun,
+    version: 3,
   };
   data._checksum = AC.checksum(data);
   return data;
@@ -972,7 +1272,6 @@ function loadGame() {
   try {
     const data = JSON.parse(raw);
 
-    // Integrity check (warn but don't block - allow save migration)
     if (!AC.validate(data)) {
       console.warn('Save integrity warning');
     }
@@ -995,23 +1294,27 @@ function loadGame() {
     game.maxCombo = data.maxCombo || 0;
     game.startTime = data.startTime || Date.now();
 
+    // v3 migration
+    game.realm = data.realm || 'prime';
+    game.selectedRealm = data.selectedRealm || game.realm;
+    game.realmCompletions = data.realmCompletions || {};
+    game.runStartTime = data.runStartTime || Date.now();
+    game.fastestRun = data.fastestRun || {};
+
     // Offline earnings
     if (data.lastSave) {
       recalculateDps();
       const offlineSeconds = (Date.now() - data.lastSave) / 1000;
       const offlineMult = getPrestigeEffect('offline_mult');
-      if (game.dps > 0 && offlineSeconds > 10) {
-        const maxOffline = 8 * 3600; // Cap at 8 hours
+      if (game.dps > 0 && offlineSeconds > 10 && offlineMult > 0) {
+        const maxOffline = 8 * 3600;
         const effectiveSeconds = Math.min(offlineSeconds, maxOffline);
         const offlineEarned = game.dps * effectiveSeconds * offlineMult;
         game.doggeds += offlineEarned;
         game.totalEarned += offlineEarned;
         game.totalEarnedThisRun += offlineEarned;
 
-        const timeStr = offlineSeconds > 3600 ? `${Math.floor(offlineSeconds / 3600)}h` :
-                        offlineSeconds > 60 ? `${Math.floor(offlineSeconds / 60)}m` :
-                        `${Math.floor(offlineSeconds)}s`;
-        showToast(`💤 +${formatNumber(offlineEarned)} doggeds earned offline (${timeStr})`);
+        showToast(`💤 +${formatNumber(offlineEarned)} doggeds earned offline (${formatTime(offlineSeconds)})`);
       }
     }
 
@@ -1028,7 +1331,6 @@ function exportSave() {
   navigator.clipboard.writeText(str).then(() => {
     showToast('📋 Save copied to clipboard!');
   }).catch(() => {
-    // Fallback
     prompt('Copy this save code:', str);
   });
 }
@@ -1075,6 +1377,7 @@ async function fetchLeaderboard() {
     list.innerHTML = '';
     data.leaderboard.forEach((entry, i) => {
       const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+      const realmIcon = REALMS.find(r => r.id === entry.realm)?.icon || '🌍';
       const el = document.createElement('div');
       el.className = 'lb-entry';
       el.innerHTML = `
@@ -1082,6 +1385,7 @@ async function fetchLeaderboard() {
         <span class="lb-name">${escapeHtml(entry.name)}</span>
         <span class="lb-score">${formatNumber(entry.score)}</span>
         <span class="lb-prestige">⭐${entry.prestige || 0}</span>
+        <span class="lb-realm">${realmIcon}</span>
       `;
       list.appendChild(el);
     });
@@ -1107,6 +1411,7 @@ async function submitScore() {
       clicks: game.totalClicks,
       dps: Math.floor(game.dps),
       souls: game.totalSoulsEarned,
+      realm: game.realm,
     },
   };
 
@@ -1139,7 +1444,6 @@ function escapeHtml(str) {
 
 // ===== TABS =====
 function setupTabs() {
-  // Shop tabs
   document.querySelectorAll('.shop-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active'));
@@ -1149,7 +1453,6 @@ function setupTabs() {
     });
   });
 
-  // Right tabs
   document.querySelectorAll('.right-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.right-tab').forEach(t => t.classList.remove('active'));
@@ -1160,7 +1463,6 @@ function setupTabs() {
     });
   });
 
-  // Buy amount
   document.querySelectorAll('.buy-amt').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.buy-amt').forEach(b => b.classList.remove('active'));
@@ -1198,13 +1500,26 @@ function setupMobileNav() {
 // ===== BACKGROUND PARTICLES =====
 function spawnParticle() {
   const p = document.createElement('div');
+  const realm = getCurrentRealm();
+  const particleColor = realm.id === 'prime' ? 'rgba(255,107,53,0.03)' :
+                        realm.id === 'frost' ? 'rgba(100,181,246,0.04)' :
+                        realm.id === 'inferno' ? 'rgba(239,83,80,0.04)' :
+                        realm.id === 'void' ? 'rgba(156,39,176,0.04)' :
+                        realm.id === 'beyond' ? 'rgba(255,215,0,0.04)' :
+                        'rgba(255,107,53,0.03)';
+  const particleText = realm.id === 'frost' ? (Math.random() > 0.5 ? '❄️' : 'dogged') :
+                       realm.id === 'inferno' ? (Math.random() > 0.5 ? '🔥' : 'dogged') :
+                       realm.id === 'void' ? (Math.random() > 0.5 ? '🕳️' : 'dogged') :
+                       realm.id === 'beyond' ? (Math.random() > 0.5 ? '✨' : 'dogged') :
+                       (Math.random() > 0.5 ? 'dogged' : '🐶');
+
   p.style.cssText = `
     position:absolute;font-family:'Bangers',cursive;
-    color:rgba(255,107,53,0.03);font-size:${1+Math.random()*1.2}rem;
+    color:${particleColor};font-size:${1+Math.random()*1.2}rem;
     left:${Math.random()*100}%;top:-30px;pointer-events:none;
     animation:particleFall ${10+Math.random()*15}s linear forwards;white-space:nowrap;
   `;
-  p.textContent = Math.random() > 0.5 ? 'dogged' : '🐶';
+  p.textContent = particleText;
   DOM.particles.appendChild(p);
   setTimeout(() => p.remove(), 25000);
 }
@@ -1225,7 +1540,6 @@ setInterval(() => {
 }, 30000);
 
 // ===== ANTI-DEVTOOLS (light) =====
-// Detect if game state is modified externally
 setInterval(() => {
   if (!AC.sanityCheck(game)) {
     showToast('⚠️ Anomaly detected');
@@ -1271,8 +1585,30 @@ document.addEventListener('DOMContentLoaded', () => {
   // Golden doggeds
   scheduleGolden();
 
-  // Initial leaderboard fetch (lazy)
+  // Leaderboard fetch
   setTimeout(fetchLeaderboard, 2000);
+
+  // Apply realm theme on load
+  applyRealmTheme();
 });
+
+// ===== REALM THEME =====
+function applyRealmTheme() {
+  const realm = getCurrentRealm();
+  document.documentElement.style.setProperty('--realm-color', realm.color);
+
+  // Update body background hint based on realm
+  if (realm.id === 'frost') {
+    document.body.style.background = 'linear-gradient(135deg, #0a0a1a 0%, #0d1b2a 100%)';
+  } else if (realm.id === 'inferno') {
+    document.body.style.background = 'linear-gradient(135deg, #1a0a0a 0%, #2a0d0d 100%)';
+  } else if (realm.id === 'void') {
+    document.body.style.background = 'linear-gradient(135deg, #0a0a1a 0%, #1a0d2a 100%)';
+  } else if (realm.id === 'beyond') {
+    document.body.style.background = 'linear-gradient(135deg, #1a1a0a 0%, #2a2a0d 100%)';
+  } else {
+    document.body.style.background = '';
+  }
+}
 
 })(); // End IIFE

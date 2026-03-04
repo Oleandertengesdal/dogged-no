@@ -734,3 +734,97 @@ h2, h3 { font-family: 'Bangers', cursive; letter-spacing: 1.5px; }
   90% { opacity: 1; }
   100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
 }
+
+/* ===== REALM UI ===== */
+.realm-badge {
+  font-size: 0.8rem; font-weight: 700;
+  padding: 2px 10px; border-radius: 20px;
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.realm-section {
+  margin-bottom: 1rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.realm-section-title {
+  font-family: 'Bangers', cursive;
+  font-size: 1rem;
+  color: var(--accent);
+  margin-bottom: 0.6rem;
+  padding: 0.3rem 0;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.realm-item {
+  position: relative;
+  border-width: 2px !important;
+  transition: all 0.2s;
+}
+
+.realm-item.realm-selected {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-width: 2px !important;
+}
+
+.realm-item.realm-locked {
+  opacity: 0.3;
+  cursor: not-allowed !important;
+}
+
+.realm-item.realm-locked:hover {
+  transform: none !important;
+  border-color: var(--card-border) !important;
+}
+
+.realm-select-tag {
+  font-size: 0.6rem;
+  font-weight: 900;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--primary);
+  color: white;
+  flex-shrink: 0;
+  letter-spacing: 1px;
+}
+
+.realm-select-tag.selected {
+  background: var(--green);
+}
+
+.prestige-shop-divider {
+  margin: 0.5rem 0;
+  padding-top: 0.5rem;
+}
+
+.modal-realm-info {
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+}
+
+.modal-realm-info .modal-realm {
+  color: var(--light) !important;
+  font-size: 0.95rem !important;
+}
+
+.modal-realm-info .modal-realm strong {
+  font-family: 'Bangers', cursive;
+  font-size: 1.2rem;
+}
+
+/* Leaderboard realm icon */
+.lb-realm {
+  font-size: 0.9rem;
+  margin-left: 0.2rem;
+}
+

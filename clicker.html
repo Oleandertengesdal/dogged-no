@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dogged Clicker — The Idle Game</title>
+  <title>Dogged Clicker v3 — The Idle Game with Realms</title>
   <meta name="description" content="Click Sigve. Earn doggeds. Ascend. Become the ultimate dogged machine.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -24,6 +24,7 @@
   <header class="top-bar">
     <a href="index.html" class="back-link">← dogged.no</a>
     <div class="top-center">
+      <span class="realm-badge" id="realmBadge" title="Current Realm">🌍 Dogged Prime</span>
       <span class="prestige-badge" id="prestigeBadge" title="Prestige Level">⭐ 0</span>
       <span class="souls-display" id="soulsDisplay" title="Dogged Souls">💀 0</span>
     </div>
@@ -120,6 +121,7 @@
           <div class="stat-row"><span>Total souls earned:</span><strong id="statTotalSouls">0</strong></div>
           <div class="stat-row"><span>Combo record:</span><strong id="statMaxCombo">0</strong></div>
           <div class="stat-row"><span>Goldens caught:</span><strong id="statGoldens">0</strong></div>
+          <div class="stat-row"><span>Current realm:</span><strong id="statRealm">🌍 Dogged Prime</strong></div>
           <div class="stat-row"><span>Time played:</span><strong id="statTimePlayed">0s</strong></div>
         </div>
         <div class="save-controls">
@@ -161,6 +163,7 @@
     <div class="modal">
       <h2>⭐ Dogged Ascension ⭐</h2>
       <p>You will earn <strong id="modalSouls">0</strong> 💀 Dogged Souls</p>
+      <div id="modalRealmInfo" class="modal-realm-info"></div>
       <div class="modal-details">
         <p class="modal-reset">🔄 Reset: Buildings, Upgrades, Doggeds</p>
         <p class="modal-keep">✅ Keep: Souls, Prestige Upgrades, Achievements</p>
