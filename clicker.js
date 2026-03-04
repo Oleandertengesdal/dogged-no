@@ -8,6 +8,8 @@
 // ===== ANTI-CHEAT =====
 const AC = {
   SECRET: 'D0GG3D-S1GV3-2026',
+  // A second key used only for save obfuscation (different from leaderboard key)
+  SAVE_KEY: 'D0GG3D-SAV3-X0R-K3Y-2026',
   maxCPS: 35,
   clickTimestamps: [],
   lastTickTime: 0,
@@ -30,8 +32,39 @@ const AC = {
     return (h >>> 0).toString(36);
   },
 
+  // XOR-encode a JSON string to hex — JSON.parse() on the stored value throws
+  encodeSave(json) {
+    const k = this.SAVE_KEY;
+    let out = '';
+    for (let i = 0; i < json.length; i++) {
+      const code = json.charCodeAt(i) ^ k.charCodeAt(i % k.length);
+      out += code.toString(16).padStart(4, '0');
+    }
+    return out;
+  },
+
+  decodeSave(str) {
+    try {
+      // Encoded saves are hex strings with length divisible by 4
+      if (!/^[0-9a-f]+$/i.test(str) || str.length % 4 !== 0) return null;
+      const k = this.SAVE_KEY;
+      let out = '';
+      for (let i = 0; i < str.length; i += 4) {
+        const code = parseInt(str.substr(i, 4), 16) ^ k.charCodeAt((i / 4) % k.length);
+        out += String.fromCharCode(code);
+      }
+      // Validate it's actually JSON
+      JSON.parse(out);
+      return out;
+    } catch (e) {
+      return null;
+    }
+  },
+
   checksum(data) {
-    const core = `${data.totalEarned}|${data.totalClicks}|${data.prestigeLevel}|${this.SECRET}`;
+    // Wider checksum — includes souls and buildings count so tampering more fields breaks it
+    const bCount = Object.values(data.buildings || {}).reduce((s, b) => s + (b.count || 0), 0);
+    const core = `${data.totalEarned}|${data.totalClicks}|${data.prestigeLevel}|${data.totalSoulsEarned || 0}|${bCount}|${this.SECRET}`;
     return this.hash(core);
   },
 
@@ -41,14 +74,15 @@ const AC = {
     return this.hash(str);
   },
 
+  // Returns { ok: boolean, tampered: boolean }
   validate(data) {
-    if (!data || !data._checksum) return false;
+    if (!data || !data._checksum) return { ok: false, tampered: false };
     const expected = this.checksum(data);
     if (data._checksum !== expected) {
       this.integrityWarnings++;
-      return this.integrityWarnings <= 3;
+      return { ok: false, tampered: true };
     }
-    return true;
+    return { ok: true, tampered: false };
   },
 
   sanityCheck(game) {
@@ -380,6 +414,11 @@ const game = {
   realmCompletions: {},
   runStartTime: Date.now(),
   fastestRun: {},
+  // Anti-cheat — not persisted, set at runtime
+  _verifiedSouls: 0,         // souls value as granted by legit game code
+  _verifiedTotalSouls: 0,    // totalSoulsEarned as granted by legit game code
+  _tickDoggeds: 0,           // expected doggeds at start of each tick
+  _tickTotalEarned: 0,       // expected totalEarned at start of each tick
 };
 
 // ===== DOM CACHE =====
@@ -775,6 +814,9 @@ function buyPrestigeUpgrade(pu) {
   game.souls -= pu.cost;
   game.prestigeUpgrades[pu.id] = true;
 
+  // Keep anti-cheat soul ref in sync (souls decreased legitimately)
+  game._verifiedSouls = game.souls;
+
   recalculateDps();
   renderShop();
   updateDisplay();
@@ -826,6 +868,10 @@ function doPrestige() {
   game.souls += souls;
   game.totalSoulsEarned += souls;
   game.prestigeLevel++;
+
+  // Keep anti-cheat soul refs in sync
+  game._verifiedSouls = game.souls;
+  game._verifiedTotalSouls = game.totalSoulsEarned;
 
   // Switch to selected realm
   game.realm = game.selectedRealm || 'prime';
@@ -1203,12 +1249,45 @@ function gameTick() {
 
   const safeDelta = Math.min(delta, 60);
 
+  // ── Integrity guard: doggeds ──────────────────────────────────────────
+  // Between ticks, only DPS + legitimate click/golden additions are allowed.
+  // We snapshot expected values at tick-start (set at end of previous tick).
+  // If current value exceeds last snapshot + generous leeway → tampered.
+  if (game._tickDoggeds > 0) {
+    const maxPossibleGain = game.dps * safeDelta * 150 + 1e6; // 150× covers largest goldens
+    const actualGain = game.doggeds - game._tickDoggeds;
+    if (actualGain > maxPossibleGain && maxPossibleGain < game.doggeds * 0.9) {
+      // Anomalous jump — revert to snapshot + legit DPS
+      const legitimateGain = game.dps * safeDelta;
+      const excess = actualGain - legitimateGain - maxPossibleGain;
+      game.doggeds -= excess;
+      game.totalEarned -= excess;
+      game.totalEarnedThisRun = Math.max(0, game.totalEarnedThisRun - excess);
+      AC.integrityWarnings++;
+    }
+  }
+
+  // ── Integrity guard: souls ────────────────────────────────────────────
+  // Souls must never exceed _verifiedSouls (set by doPrestige / buyPrestigeUpgrade)
+  if (game._verifiedSouls >= 0 && game.souls > game._verifiedSouls) {
+    game.souls = game._verifiedSouls;
+    AC.integrityWarnings++;
+  }
+  if (game._verifiedTotalSouls >= 0 && game.totalSoulsEarned > game._verifiedTotalSouls) {
+    game.totalSoulsEarned = game._verifiedTotalSouls;
+    AC.integrityWarnings++;
+  }
+
   if (game.dps > 0) {
     const earned = game.dps * safeDelta;
     game.doggeds += earned;
     game.totalEarned += earned;
     game.totalEarnedThisRun += earned;
   }
+
+  // Update snapshots for next tick
+  game._tickDoggeds = game.doggeds;
+  game._tickTotalEarned = game.totalEarned;
 
   if (!AC.sanityCheck(game)) {
     console.warn('Anti-cheat: sanity check failed');
@@ -1261,7 +1340,9 @@ function getSaveData() {
 
 function saveGame() {
   const data = getSaveData();
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  // XOR-encode the JSON — raw localStorage value is no longer valid JSON,
+  // making manual save editing via the console non-trivial.
+  localStorage.setItem(SAVE_KEY, AC.encodeSave(JSON.stringify(data)));
   showToast('💾 Saved!');
 }
 
@@ -1270,10 +1351,25 @@ function loadGame() {
   if (!raw) return false;
 
   try {
-    const data = JSON.parse(raw);
+    // Try XOR-decoded format first; fall back to plain JSON for legacy saves
+    let jsonStr = AC.decodeSave(raw);
+    if (!jsonStr) jsonStr = raw; // legacy plain-JSON save
 
-    if (!AC.validate(data)) {
-      console.warn('Save integrity warning');
+    let data;
+    try {
+      data = JSON.parse(jsonStr);
+    } catch (e) {
+      data = JSON.parse(raw); // last-resort plain parse
+    }
+
+    const { ok, tampered } = AC.validate(data);
+    if (tampered) {
+      // Checksum mismatch on a decoded save → save was tampered.
+      // Keep structural progress (prestige level, realm) but wipe currencies.
+      console.warn('Save integrity check failed — resetting currencies');
+      data.doggeds = 0;
+      data.souls = 0;
+      // totalSoulsEarned and totalEarned kept so achievements/prestige-level stay readable
     }
 
     game.doggeds = data.doggeds || 0;
@@ -1300,6 +1396,10 @@ function loadGame() {
     game.realmCompletions = data.realmCompletions || {};
     game.runStartTime = data.runStartTime || Date.now();
     game.fastestRun = data.fastestRun || {};
+
+    // Initialise anti-cheat runtime refs to loaded values
+    game._verifiedSouls = game.souls;
+    game._verifiedTotalSouls = game.totalSoulsEarned;
 
     // Offline earnings
     if (data.lastSave) {
@@ -1345,11 +1445,21 @@ function doImport() {
 
   try {
     const data = JSON.parse(atob(raw));
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+
+    // Validate checksum on imported saves \u2014 wipe currencies if tampered
+    const { tampered } = AC.validate(data);
+    if (tampered) {
+      data.doggeds = 0;
+      data.souls = 0;
+      showToast('\u26a0\ufe0f Imported save checksum mismatch \u2014 currencies reset');
+    }
+
+    // Re-encode before writing so localStorage stays obfuscated
+    localStorage.setItem(SAVE_KEY, AC.encodeSave(JSON.stringify(data)));
     DOM.importModal.classList.add('hidden');
     location.reload();
   } catch (e) {
-    showToast('❌ Invalid save code');
+    showToast('\u274c Invalid save code');
   }
 }
 
