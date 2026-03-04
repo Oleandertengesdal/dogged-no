@@ -1502,10 +1502,11 @@ function getOrCreatePlayerId() {
 }
 
 async function fetchLeaderboard(silent = false) {
+  const isSilent = silent === true;
   const list = DOM.leaderboardList;
 
   // If not silent and list is empty, show loading
-  if (!silent || list.innerHTML.trim() === '' || list.querySelector('.leaderboard-loading')) {
+  if (!isSilent || list.innerHTML.trim() === '' || list.querySelector('.leaderboard-loading')) {
     list.innerHTML = '<div class="leaderboard-loading">Loading...</div>';
   }
 
@@ -1537,7 +1538,7 @@ async function fetchLeaderboard(silent = false) {
       list.appendChild(el);
     });
   } catch (e) {
-    if (!silent) {
+    if (!isSilent) {
       list.innerHTML = '<div class="leaderboard-loading">Could not load leaderboard</div>';
     }
     console.error('Leaderboard fetch error:', e);
@@ -1563,19 +1564,21 @@ function startLeaderboardAutoRefresh() {
 }
 
 async function submitScore(silent = false) {
-  const name = silent
+  const isSilent = silent === true;
+
+  const name = isSilent
     ? localStorage.getItem(SCORE_NAME_KEY)
     : DOM.playerName.value.trim();
 
   if (!name || name.length < 1 || name.length > 20) {
-    if (!silent) showToast('Enter a name (1-20 chars)');
+    if (!isSilent) showToast('Enter a name (1-20 chars)');
     return;
   }
 
   const pid = getOrCreatePlayerId();
 
   // Save name for future auto-submits and lock the input
-  if (!silent) {
+  if (!isSilent) {
     localStorage.setItem(SCORE_NAME_KEY, name);
     DOM.playerName.value = name;
     DOM.playerName.readOnly = true;
@@ -1610,13 +1613,13 @@ async function submitScore(silent = false) {
 
     const data = await res.json();
     if (data.ok) {
-      if (!silent) showToast(`🌍 Submitted! Rank #${data.rank}`);
+      if (!isSilent) showToast(`🌍 Submitted! Rank #${data.rank}`);
       fetchLeaderboard(true);
-    } else if (!silent) {
+    } else if (!isSilent) {
       showToast(`❌ ${data.error || 'Submit failed'}`);
     }
   } catch (e) {
-    if (!silent) showToast('❌ Could not submit score');
+    if (!isSilent) showToast('❌ Could not submit score');
   }
 }
 
@@ -1795,8 +1798,8 @@ document.addEventListener('DOMContentLoaded', () => {
   DOM.cancelPrestige.addEventListener('click', () => DOM.prestigeModal.classList.add('hidden'));
   DOM.confirmImport.addEventListener('click', doImport);
   DOM.cancelImport.addEventListener('click', () => DOM.importModal.classList.add('hidden'));
-  DOM.submitScoreBtn.addEventListener('click', submitScore);
-  DOM.refreshLeaderboard.addEventListener('click', fetchLeaderboard);
+  DOM.submitScoreBtn.addEventListener('click', () => submitScore(false));
+  DOM.refreshLeaderboard.addEventListener('click', () => fetchLeaderboard(false));
 
   setupTabs();
   setupMobileNav();
