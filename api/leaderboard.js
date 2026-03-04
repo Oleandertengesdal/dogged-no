@@ -19,9 +19,14 @@ function simpleHash(str) {
   return (h >>> 0).toString(36);
 }
 
-// Verify using the same hash algorithm and secret the client uses
+// Verify using the same hash algorithm and secret the client uses.
+// Secret is stored in the DOGGED_CLIENT_SECRET Vercel environment variable.
 function verifyPayload(data, signature) {
-  const CLIENT_SECRET = 'D0GG3D-S1GV3-2026';
+  const CLIENT_SECRET = process.env.DOGGED_CLIENT_SECRET;
+  if (!CLIENT_SECRET) {
+    console.error('DOGGED_CLIENT_SECRET env var is not set');
+    return false;
+  }
   const str = `${data.name}|${data.score}|${data.prestige}|${data.ts}|${CLIENT_SECRET}`;
   return simpleHash(str) === signature;
 }

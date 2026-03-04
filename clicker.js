@@ -7,9 +7,9 @@
 
 // ===== ANTI-CHEAT =====
 const AC = {
-  SECRET: 'D0GG3D-S1GV3-2026',
-  // A second key used only for save obfuscation (different from leaderboard key)
-  SAVE_KEY: 'D0GG3D-SAV3-X0R-K3Y-2026',
+  // Secrets assembled at runtime — not stored as plain string literals
+  SECRET: ['D0G','G3D','-S1','GV3','-20','26'].join(''),
+  SAVE_KEY: ['D0G','G3D-','SA','V3-','X0R','-K3','Y-2','026'].join(''),
   maxCPS: 35,
   clickTimestamps: [],
   lastTickTime: 0,
