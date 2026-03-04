@@ -56,16 +56,29 @@ module.exports = async function handler(req, res) {
     if (req.method === 'GET') {
       let entries = [];
       try {
-        entries = (await kv.get(LEADERBOARD_KEY)) || [];
+        const raw = await kv.get(LEADERBOARD_KEY);
+        if (raw === null || raw === undefined) {
+          // No data yet
+          entries = [];
+        } else if (Array.isArray(raw)) {
+          // SDK auto-parsed it
+          entries = raw;
+        } else if (typeof raw === 'string') {
+          // Stored as a raw JSON string (e.g. manually via Upstash console)
+          try { entries = JSON.parse(raw); } catch { entries = []; }
+        } else if (typeof raw === 'object') {
+          // Unexpected object shape — try wrapping or ignore
+          entries = Array.isArray(raw) ? raw : [];
+        }
       } catch (e) {
-        console.error('Redis GET error:', e);
+        console.error('Redis GET error:', e.message);
         return res.status(200).json({
           ok: true,
           leaderboard: [],
-          message: 'Leaderboard not configured yet. Connect Upstash Redis to enable.',
+          message: 'Could not reach leaderboard storage.',
         });
       }
-      return res.status(200).json({ ok: true, leaderboard: entries });
+      return res.status(200).json({ ok: true, leaderboard: entries, ts: Date.now() });
     }
 
     // POST — submit score
@@ -85,9 +98,14 @@ module.exports = async function handler(req, res) {
       // Rate limit check
       let entries = [];
       try {
-        entries = (await kv.get(LEADERBOARD_KEY)) || [];
+        const raw = await kv.get(LEADERBOARD_KEY);
+        if (Array.isArray(raw)) {
+          entries = raw;
+        } else if (typeof raw === 'string') {
+          try { entries = JSON.parse(raw); } catch { entries = []; }
+        }
       } catch (e) {
-        console.error('Redis GET error:', e);
+        console.error('Redis GET error:', e.message);
         return res.status(503).json({ ok: false, error: 'Leaderboard storage not available' });
       }
 

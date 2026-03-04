@@ -400,7 +400,7 @@ function cacheDom() {
     'multDisplay', 'comboDisplay', 'achievementProgress',
     'playerName', 'submitScoreBtn', 'leaderboardList', 'refreshLeaderboard',
     'shopPanel', 'statsPanel', 'clickerArea',
-    'realmBadge', 'realmListContainer',
+    'realmBadge', 'realmListContainer', 'lbLastUpdated',
   ];
   ids.forEach(id => { DOM[id] = $(id); });
 }
@@ -1361,13 +1361,23 @@ function resetGame() {
 }
 
 // ===== LEADERBOARD =====
-async function fetchLeaderboard() {
+let leaderboardAutoRefresh = null;
+let lastLeaderboardFetch = 0;
+
+async function fetchLeaderboard(silent = false) {
   const list = DOM.leaderboardList;
-  list.innerHTML = '<div class="leaderboard-loading">Loading...</div>';
+
+  // If not silent and list is empty, show loading
+  if (!silent || list.innerHTML.trim() === '' || list.querySelector('.leaderboard-loading')) {
+    list.innerHTML = '<div class="leaderboard-loading">Loading...</div>';
+  }
 
   try {
-    const res = await fetch('/api/leaderboard');
+    const res = await fetch('/api/leaderboard?t=' + Date.now()); // cache-bust
     const data = await res.json();
+
+    lastLeaderboardFetch = Date.now();
+    updateLeaderboardTimestamp();
 
     if (!data.ok || !data.leaderboard || data.leaderboard.length === 0) {
       list.innerHTML = `<div class="leaderboard-loading">${data.message || 'No entries yet. Be the first!'}</div>`;
@@ -1377,21 +1387,42 @@ async function fetchLeaderboard() {
     list.innerHTML = '';
     data.leaderboard.forEach((entry, i) => {
       const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-      const realmIcon = REALMS.find(r => r.id === entry.realm)?.icon || '🌍';
+      const realmIcon = REALMS.find(r => r.id === entry.realm)?.icon || '\uD83C\uDF0D';
       const el = document.createElement('div');
       el.className = 'lb-entry';
       el.innerHTML = `
         <span class="lb-rank ${rankClass}">#${i + 1}</span>
         <span class="lb-name">${escapeHtml(entry.name)}</span>
         <span class="lb-score">${formatNumber(entry.score)}</span>
-        <span class="lb-prestige">⭐${entry.prestige || 0}</span>
+        <span class="lb-prestige">\u2B50${entry.prestige || 0}</span>
         <span class="lb-realm">${realmIcon}</span>
       `;
       list.appendChild(el);
     });
   } catch (e) {
-    list.innerHTML = '<div class="leaderboard-loading">Could not load leaderboard</div>';
+    if (!silent) {
+      list.innerHTML = '<div class="leaderboard-loading">Could not load leaderboard</div>';
+    }
+    console.error('Leaderboard fetch error:', e);
   }
+}
+
+function updateLeaderboardTimestamp() {
+  const el = $('lbLastUpdated');
+  if (!el || !lastLeaderboardFetch) return;
+  const secs = Math.floor((Date.now() - lastLeaderboardFetch) / 1000);
+  if (secs < 60) el.textContent = `Updated just now`;
+  else el.textContent = `Updated ${Math.floor(secs / 60)}m ago`;
+}
+
+function startLeaderboardAutoRefresh() {
+  if (leaderboardAutoRefresh) clearInterval(leaderboardAutoRefresh);
+  // Refresh every 10 minutes silently
+  leaderboardAutoRefresh = setInterval(() => {
+    fetchLeaderboard(true);
+  }, 10 * 60 * 1000);
+  // Also update the "x min ago" timestamp every 30 seconds
+  setInterval(updateLeaderboardTimestamp, 30000);
 }
 
 async function submitScore() {
@@ -1459,7 +1490,7 @@ function setupTabs() {
       document.querySelectorAll('.right-tab-content').forEach(c => c.classList.remove('active'));
       tab.classList.add('active');
       $('rtab-' + tab.dataset.rtab)?.classList.add('active');
-      if (tab.dataset.rtab === 'leaderboard') fetchLeaderboard();
+      if (tab.dataset.rtab === 'leaderboard') fetchLeaderboard(false);
     });
   });
 
@@ -1585,8 +1616,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Golden doggeds
   scheduleGolden();
 
-  // Leaderboard fetch
+  // Leaderboard fetch + auto-refresh
   setTimeout(fetchLeaderboard, 2000);
+  startLeaderboardAutoRefresh();
 
   // Apply realm theme on load
   applyRealmTheme();

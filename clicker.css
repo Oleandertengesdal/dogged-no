@@ -575,6 +575,25 @@ h2, h3 { font-family: 'Bangers', cursive; letter-spacing: 1.5px; }
 
 .refresh-btn:hover { border-color: var(--primary); color: var(--primary); }
 
+.lb-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.4rem;
+  padding: 0 0.2rem;
+}
+
+.lb-last-updated {
+  font-size: 0.68rem;
+  color: #555;
+}
+
+.lb-auto-hint {
+  font-size: 0.65rem;
+  color: #3a3a3a;
+  font-style: italic;
+}
+
 /* ===== MODALS ===== */
 .modal-overlay {
   position: fixed; inset: 0;
