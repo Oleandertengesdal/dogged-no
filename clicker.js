@@ -914,8 +914,16 @@ function doPrestige() {
 
 // ===== GOLDEN DOGGED =====
 let goldenTimeout = null;
+let goldenHideTimeout = null;
+let goldenClickHandler = null;
 
 function scheduleGolden() {
+  // Always keep only one pending spawn timer
+  if (goldenTimeout) {
+    clearTimeout(goldenTimeout);
+    goldenTimeout = null;
+  }
+
   // Don't schedule if realm disables golden doggeds
   if (!getCurrentRealm().goldenEnabled) return;
 
@@ -924,13 +932,27 @@ function scheduleGolden() {
   const maxDelay = 300000 / freqMult;
   const delay = minDelay + Math.random() * (maxDelay - minDelay);
 
-  goldenTimeout = setTimeout(spawnGoldenDogged, delay);
+  goldenTimeout = setTimeout(() => {
+    goldenTimeout = null;
+    spawnGoldenDogged();
+  }, delay);
 }
 
 function spawnGoldenDogged() {
   if (!getCurrentRealm().goldenEnabled) return;
 
   const el = DOM.goldenDogged;
+
+  // Remove stale listeners/timeouts from previous spawns
+  if (goldenClickHandler) {
+    el.removeEventListener('click', goldenClickHandler);
+    goldenClickHandler = null;
+  }
+  if (goldenHideTimeout) {
+    clearTimeout(goldenHideTimeout);
+    goldenHideTimeout = null;
+  }
+
   el.classList.remove('hidden');
 
   const x = 100 + Math.random() * (window.innerWidth - 200);
@@ -941,20 +963,31 @@ function spawnGoldenDogged() {
   const durMult = getPrestigeEffect('golden_duration');
   const duration = 10000 * durMult;
 
-  const hideTimer = setTimeout(() => {
+  goldenHideTimeout = setTimeout(() => {
     el.classList.add('hidden');
+    if (goldenClickHandler) {
+      el.removeEventListener('click', goldenClickHandler);
+      goldenClickHandler = null;
+    }
+    goldenHideTimeout = null;
     scheduleGolden();
   }, duration);
 
-  const clickHandler = () => {
+  goldenClickHandler = () => {
     el.classList.add('hidden');
-    clearTimeout(hideTimer);
+    if (goldenHideTimeout) {
+      clearTimeout(goldenHideTimeout);
+      goldenHideTimeout = null;
+    }
+    if (goldenClickHandler) {
+      el.removeEventListener('click', goldenClickHandler);
+      goldenClickHandler = null;
+    }
     collectGolden();
-    el.removeEventListener('click', clickHandler);
     scheduleGolden();
   };
 
-  el.addEventListener('click', clickHandler, { once: true });
+  el.addEventListener('click', goldenClickHandler);
 }
 
 function collectGolden() {
