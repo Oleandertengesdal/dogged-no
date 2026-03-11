@@ -221,14 +221,15 @@ const UPGRADES = [
 
 function generateBuildingUpgrades() {
   const tiers = [
-    { count: 10,  mult: 2,  suffix: 'I',    clicksNeeded: 1 },
-    { count: 25,  mult: 2,  suffix: 'II',   clicksNeeded: 2 },
-    { count: 50,  mult: 2,  suffix: 'III',  clicksNeeded: 3 },
-    { count: 100, mult: 3,  suffix: 'IV',   clicksNeeded: 5 },
-    { count: 150, mult: 3,  suffix: 'V',    clicksNeeded: 7 },
-    { count: 200, mult: 4,  suffix: 'VI',   clicksNeeded: 10 },
-    { count: 300, mult: 5,  suffix: 'VII',  clicksNeeded: 15 },
-    { count: 400, mult: 5,  suffix: 'VIII', clicksNeeded: 20 },
+    { count: 10,  mult: 2,  suffix: 'I',     clicksNeeded: 1 },
+    { count: 25,  mult: 2,  suffix: 'II',    clicksNeeded: 2 },
+    { count: 50,  mult: 2,  suffix: 'III',   clicksNeeded: 3 },
+    { count: 75,  mult: 2,  suffix: 'III½',  clicksNeeded: 4 },
+    { count: 100, mult: 3,  suffix: 'IV',    clicksNeeded: 5 },
+    { count: 150, mult: 3,  suffix: 'V',     clicksNeeded: 7 },
+    { count: 200, mult: 4,  suffix: 'VI',    clicksNeeded: 10 },
+    { count: 300, mult: 5,  suffix: 'VII',   clicksNeeded: 15 },
+    { count: 400, mult: 5,  suffix: 'VIII',  clicksNeeded: 20 },
   ];
 
   const results = [];
