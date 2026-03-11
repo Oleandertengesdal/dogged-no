@@ -631,7 +631,7 @@ function getSoulsForCurrentRun() {
   const base = Math.floor(Math.pow(game.totalEarnedThisRun / 1e12, 0.45));
   const soulBonus = getPrestigeEffect('soul_bonus');
   const realmMult = getRealmSoulMult();
-  return Math.floor(base * soulBonus * realmMult);
+  return Math.floor(base * soulBonus * realmMult * 10) / 10;
 }
 
 function getSoulBoostMultiplier() {

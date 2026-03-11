@@ -1,0 +1,255 @@
+/* ── snake.css — Dogged Snake ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#0f0f1a;
+  --surface:#1a1a2e;
+  --border:#2a2a4a;
+  --text:#e0e0e0;
+  --muted:#888;
+  --primary:#ff6b35;
+  --green:#4caf50;
+  --green-glow:rgba(76,175,80,.35);
+  --red:#e74c3c;
+  --accent:#4caf50;
+}
+
+html{font-size:14px}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── Top bar ── */
+.top-bar{
+  display:flex;align-items:center;gap:1rem;
+  padding:.6rem 1.2rem;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:100;
+  flex-wrap:wrap;
+}
+.back-link{
+  color:var(--primary);text-decoration:none;font-weight:700;font-size:.9rem;
+  white-space:nowrap;
+}
+.back-link:hover{text-decoration:underline}
+.game-info{display:flex;flex-direction:column;align-items:center;gap:0}
+.info-label{font-size:.6rem;text-transform:uppercase;color:var(--muted);letter-spacing:.08em}
+.info-val{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1.1rem;color:var(--green)}
+.top-title{
+  margin-left:auto;
+  font-family:'Bangers',cursive;font-size:1.5rem;
+  color:var(--green);letter-spacing:.05em;
+}
+
+/* ── Mobile nav ── */
+.mobile-nav{
+  display:none;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:.4rem .6rem;gap:.4rem;
+}
+.mob-btn{
+  flex:1;padding:.45rem;border:none;border-radius:6px;
+  background:transparent;color:var(--muted);font-size:.8rem;
+  font-weight:600;cursor:pointer;
+}
+.mob-btn.active{background:var(--green);color:#fff}
+
+/* ── Layout ── */
+.layout{
+  display:flex;gap:0;min-height:calc(100vh - 48px);
+}
+.panel{
+  width:280px;flex-shrink:0;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  padding:1rem;overflow-y:auto;
+}
+.panel-right{border-right:none;border-left:1px solid var(--border)}
+.panel-title{
+  font-family:'Bangers',cursive;font-size:1.3rem;color:var(--green);
+  margin-bottom:.8rem;display:flex;align-items:center;gap:.5rem;
+}
+
+.game-center{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:1.5rem;gap:1rem;
+  min-width:0;
+}
+
+/* ── Info box ── */
+.info-box{
+  background:rgba(76,175,80,.07);border:1px solid rgba(76,175,80,.2);
+  border-radius:8px;padding:.8rem;margin-bottom:1rem;
+  font-size:.85rem;line-height:1.5;
+}
+.info-box p{margin-bottom:.5rem}
+.info-box p:last-child{margin-bottom:0}
+.food-highlight{color:var(--green);font-weight:700}
+
+/* ── Controls ── */
+.controls-grid{font-size:.82rem;margin-bottom:1rem}
+.key-row{
+  padding:.3rem 0;
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+kbd{
+  display:inline-block;padding:2px 6px;
+  background:#2a2a4a;border:1px solid #3a3a5a;border-radius:3px;
+  font-family:'JetBrains Mono',monospace;font-size:.75rem;
+  color:var(--green);
+}
+
+/* ── Stats ── */
+.stats-block{font-size:.85rem}
+.stat-row{
+  display:flex;justify-content:space-between;
+  padding:.35rem 0;
+  border-bottom:1px solid rgba(255,255,255,.05);
+}
+.stat-row span:last-child{font-family:'JetBrains Mono',monospace;color:var(--green);font-weight:700}
+
+/* ── Canvas ── */
+.canvas-wrap{
+  position:relative;
+  width:600px;max-width:100%;
+  aspect-ratio:1;
+  border:2px solid var(--green);
+  border-radius:8px;
+  overflow:hidden;
+  box-shadow:0 0 30px var(--green-glow);
+}
+#gameCanvas{
+  display:block;width:100%;height:100%;
+  background:#0a0a16;
+  image-rendering:pixelated;
+}
+
+/* ── Overlays ── */
+.overlay{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(15,15,26,.92);
+  z-index:10;
+}
+.overlay.hidden{display:none}
+.overlay-box{
+  text-align:center;padding:2rem;
+  background:var(--surface);border:1px solid var(--green);
+  border-radius:12px;max-width:360px;width:90%;
+}
+.overlay-box h2{
+  font-family:'Bangers',cursive;font-size:2rem;
+  color:var(--green);margin-bottom:.5rem;
+}
+.overlay-box p{color:var(--muted);margin-bottom:1rem;font-size:.9rem}
+.score-big{
+  font-family:'JetBrains Mono',monospace;font-size:2.4rem;
+  color:var(--green);font-weight:700;
+}
+
+.btn-play,.btn-submit{
+  display:inline-block;padding:.7rem 2rem;
+  border:none;border-radius:8px;
+  font-family:'Bangers',cursive;font-size:1.2rem;
+  cursor:pointer;transition:transform .15s,box-shadow .15s;
+}
+.btn-play{
+  background:var(--green);color:#fff;
+  box-shadow:0 0 15px var(--green-glow);
+}
+.btn-play:hover{transform:scale(1.05);box-shadow:0 0 25px var(--green-glow)}
+.btn-submit{
+  background:var(--primary);color:#fff;font-size:1rem;
+  margin-top:.5rem;
+}
+.btn-submit:hover{opacity:.9}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed}
+
+.name-input{
+  display:block;width:100%;padding:.6rem;margin-top:.5rem;
+  background:#0f0f1a;border:1px solid var(--border);border-radius:6px;
+  color:var(--text);font-size:.95rem;font-family:'JetBrains Mono',monospace;
+  text-align:center;
+}
+.name-input:focus{outline:none;border-color:var(--green)}
+.submit-status{font-size:.8rem;margin-top:.4rem;min-height:1.2em;color:var(--muted)}
+
+/* ── Touch controls ── */
+.touch-controls{
+  display:none;
+  flex-direction:column;align-items:center;gap:.3rem;
+  margin-top:.5rem;
+}
+.touch-row{display:flex;gap:.3rem}
+.touch-btn{
+  width:56px;height:56px;
+  background:var(--surface);border:1px solid var(--green);border-radius:8px;
+  color:var(--green);font-size:1.3rem;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.touch-btn:active{background:var(--green);color:#fff}
+
+/* ── Leaderboard ── */
+.refresh-btn{
+  background:none;border:1px solid var(--green);
+  color:var(--green);border-radius:4px;
+  padding:2px 8px;font-size:1rem;cursor:pointer;
+  margin-left:auto;
+}
+.refresh-btn:hover{background:rgba(76,175,80,.15)}
+
+.lb-list{
+  list-style:none;counter-reset:lb;
+}
+.lb-list li{
+  counter-increment:lb;
+  display:flex;align-items:center;gap:.5rem;
+  padding:.45rem .3rem;
+  border-bottom:1px solid rgba(255,255,255,.05);
+  font-size:.85rem;
+}
+.lb-list li::before{
+  content:counter(lb)".";
+  font-family:'JetBrains Mono',monospace;
+  color:var(--muted);min-width:1.8rem;text-align:right;
+  font-weight:700;font-size:.8rem;
+}
+.lb-name{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-score{
+  font-family:'JetBrains Mono',monospace;
+  color:var(--green);font-weight:700;font-size:.85rem;
+}
+.lb-empty{color:var(--muted);font-style:italic;padding:1rem 0;text-align:center}
+.lb-list li:nth-child(1)::before{color:gold}
+.lb-list li:nth-child(2)::before{color:silver}
+.lb-list li:nth-child(3)::before{color:#cd7f32}
+
+/* ── Responsive ── */
+@media(max-width:1100px){
+  .panel{width:240px}
+}
+@media(max-width:900px){
+  .mobile-nav{display:flex}
+  .layout{flex-direction:column}
+  .panel{
+    width:100%;border:none;
+    display:none;
+    position:fixed;top:90px;left:0;right:0;bottom:0;
+    z-index:50;overflow-y:auto;
+  }
+  .panel.show{display:block}
+  .game-center{padding:1rem .5rem}
+  .top-title{display:none}
+  .canvas-wrap{width:100%;max-width:400px}
+  .touch-controls{display:flex}
+}
+@media(max-width:500px){
+  .canvas-wrap{max-width:95vw}
+  .touch-btn{width:48px;height:48px;font-size:1.1rem}
+}

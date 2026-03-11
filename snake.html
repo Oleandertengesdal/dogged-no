@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Dogged Snake 🐍 | dogged.no</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="snake.css">
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="top-bar">
+  <a href="games.html" class="back-link">← Games</a>
+  <div class="game-info">
+    <span class="info-label">SCORE</span>
+    <span id="scoreDisplay" class="info-val">0</span>
+  </div>
+  <div class="game-info">
+    <span class="info-label">HIGH</span>
+    <span id="highDisplay" class="info-val">0</span>
+  </div>
+  <div class="game-info">
+    <span class="info-label">SPEED</span>
+    <span id="speedDisplay" class="info-val">1</span>
+  </div>
+  <div class="top-title">🐍 DOGGED SNAKE</div>
+</header>
+
+<!-- MOBILE NAV -->
+<nav class="mobile-nav">
+  <button class="mob-btn active" data-panel="game">🎮 Game</button>
+  <button class="mob-btn" data-panel="settings">⚙️ Info</button>
+  <button class="mob-btn" data-panel="leaderboard">🏆 Board</button>
+</nav>
+
+<!-- MAIN LAYOUT -->
+<div class="layout">
+
+  <!-- LEFT PANEL -->
+  <aside class="panel panel-left" id="settingsPanel">
+    <h2 class="panel-title">HOW TO PLAY</h2>
+    <div class="info-box">
+      <p>Use <strong>Arrow Keys</strong> or <strong>WASD</strong> to steer the snake.</p>
+      <p>On mobile, <strong>swipe</strong> to change direction.</p>
+      <p>Eat the <span class="food-highlight">dogged treats</span> to grow and score points!</p>
+      <p>Don't hit the walls or yourself.</p>
+      <p>Speed increases every <strong>5 treats</strong>.</p>
+    </div>
+
+    <h2 class="panel-title">CONTROLS</h2>
+    <div class="controls-grid">
+      <div class="key-row"><kbd>↑</kbd> or <kbd>W</kbd> — Up</div>
+      <div class="key-row"><kbd>↓</kbd> or <kbd>S</kbd> — Down</div>
+      <div class="key-row"><kbd>←</kbd> or <kbd>A</kbd> — Left</div>
+      <div class="key-row"><kbd>→</kbd> or <kbd>D</kbd> — Right</div>
+      <div class="key-row"><kbd>Space</kbd> — Pause</div>
+      <div class="key-row"><kbd>R</kbd> — Restart</div>
+    </div>
+
+    <h2 class="panel-title">SESSION STATS</h2>
+    <div class="stats-block">
+      <div class="stat-row"><span>Games</span><span id="statGames">0</span></div>
+      <div class="stat-row"><span>High Score</span><span id="statHigh">0</span></div>
+      <div class="stat-row"><span>Total Eaten</span><span id="statEaten">0</span></div>
+    </div>
+  </aside>
+
+  <!-- CENTER: GAME AREA -->
+  <main class="game-center" id="gamePanel">
+    <div class="canvas-wrap">
+      <canvas id="gameCanvas" width="600" height="600"></canvas>
+
+      <!-- Start overlay -->
+      <div class="overlay" id="startOverlay">
+        <div class="overlay-box">
+          <h2>🐍 DOGGED SNAKE</h2>
+          <p>Slither for dogged glory!</p>
+          <button class="btn-play" id="startBtn">PLAY</button>
+        </div>
+      </div>
+
+      <!-- Game Over overlay -->
+      <div class="overlay hidden" id="gameOverOverlay">
+        <div class="overlay-box">
+          <h2>💀 GAME OVER</h2>
+          <p>Score: <span id="finalScore" class="score-big">0</span></p>
+          <div id="submitSection">
+            <input type="text" id="playerName" maxlength="20" placeholder="Your name…" class="name-input" autocomplete="off">
+            <button class="btn-submit" id="submitBtn">SUBMIT SCORE</button>
+            <div id="submitStatus" class="submit-status"></div>
+          </div>
+          <button class="btn-play" id="retryBtn">PLAY AGAIN</button>
+        </div>
+      </div>
+
+      <!-- Paused overlay -->
+      <div class="overlay hidden" id="pauseOverlay">
+        <div class="overlay-box">
+          <h2>⏸ PAUSED</h2>
+          <p>Press <kbd>Space</kbd> to resume</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Touch controls for mobile -->
+    <div class="touch-controls">
+      <button class="touch-btn" data-dir="up">▲</button>
+      <div class="touch-row">
+        <button class="touch-btn" data-dir="left">◀</button>
+        <button class="touch-btn" data-dir="down">▼</button>
+        <button class="touch-btn" data-dir="right">▶</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT PANEL: LEADERBOARD -->
+  <aside class="panel panel-right" id="leaderboardPanel">
+    <h2 class="panel-title">
+      🏆 LEADERBOARD
+      <button class="refresh-btn" id="refreshLb" title="Refresh">↻</button>
+    </h2>
+    <ol class="lb-list" id="leaderboardList">
+      <li class="lb-empty">Loading…</li>
+    </ol>
+  </aside>
+
+</div>
+
+<script src="snake.js"></script>
+</body>
+</html>

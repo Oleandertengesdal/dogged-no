@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dogged Minesweeper — Find the Dogged Mines!</title>
+  <meta name="description" content="Classic minesweeper with a dogged twist. Find the mines, beat the clock, top the leaderboard.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="minesweeper.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💣</text></svg>">
+</head>
+<body>
+  <!-- Top bar -->
+  <header class="top-bar">
+    <a href="games.html" class="back-link">← Game Center</a>
+    <div class="top-center">
+      <span class="mines-display" id="minesDisplay">💣 10</span>
+      <span class="timer-display" id="timerDisplay">⏱️ 0:00</span>
+    </div>
+    <div class="top-right">
+      <span class="difficulty-label" id="diffLabel">Easy</span>
+    </div>
+  </header>
+
+  <div class="game-layout">
+    <!-- LEFT: Difficulty & Controls -->
+    <aside class="side-panel left-panel">
+      <h3 class="panel-title">⚙️ Difficulty</h3>
+      <div class="diff-buttons">
+        <button class="diff-btn active" data-diff="easy">
+          <span class="diff-name">Easy</span>
+          <span class="diff-info">9×9 · 10 mines</span>
+        </button>
+        <button class="diff-btn" data-diff="medium">
+          <span class="diff-name">Medium</span>
+          <span class="diff-info">16×16 · 40 mines</span>
+        </button>
+        <button class="diff-btn" data-diff="hard">
+          <span class="diff-name">Hard</span>
+          <span class="diff-info">30×16 · 99 mines</span>
+        </button>
+      </div>
+      <button class="new-game-btn" id="newGameBtn">🔄 New Game</button>
+
+      <div class="controls-info">
+        <h4>Controls</h4>
+        <p>🖱️ Left click — Reveal cell</p>
+        <p>🖱️ Right click — Flag mine</p>
+        <p>🖱️ Double click — Quick reveal</p>
+      </div>
+
+      <div class="stats-box">
+        <h4>📊 Session Stats</h4>
+        <div class="stat-row"><span>Games played:</span><strong id="statGames">0</strong></div>
+        <div class="stat-row"><span>Games won:</span><strong id="statWins">0</strong></div>
+        <div class="stat-row"><span>Win rate:</span><strong id="statRate">0%</strong></div>
+        <div class="stat-row"><span>Best time:</span><strong id="statBest">—</strong></div>
+      </div>
+    </aside>
+
+    <!-- CENTER: Game Board -->
+    <main class="game-area">
+      <div class="game-status" id="gameStatus">
+        <span id="statusEmoji">🐶</span>
+        <span id="statusText">Click to start</span>
+      </div>
+      <div class="board-wrapper" id="boardWrapper">
+        <div class="board" id="board"></div>
+      </div>
+
+      <!-- Win overlay -->
+      <div class="win-overlay hidden" id="winOverlay">
+        <div class="win-box">
+          <h2>🎉 DOGGED! You won!</h2>
+          <p>You cleared all the mines!</p>
+          <div class="win-stats">
+            <div class="win-stat"><span>Time</span><strong id="winTime">0:00</strong></div>
+            <div class="win-stat"><span>Difficulty</span><strong id="winDiff">Easy</strong></div>
+          </div>
+          <div class="win-submit">
+            <input type="text" id="winName" placeholder="Your name" maxlength="20" class="win-input">
+            <button class="submit-btn" id="winSubmitBtn">Submit Time</button>
+          </div>
+          <div id="winSubmitStatus" class="submit-status hidden"></div>
+          <button class="retry-btn" id="winRetryBtn">🔄 Play Again</button>
+        </div>
+      </div>
+
+      <!-- Lose overlay -->
+      <div class="lose-overlay hidden" id="loseOverlay">
+        <div class="lose-box">
+          <h2>💥 BOOM!</h2>
+          <p>You hit a dogged mine!</p>
+          <button class="retry-btn" id="loseRetryBtn">🔄 Try Again</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- RIGHT: Leaderboard -->
+    <aside class="side-panel right-panel">
+      <h3 class="panel-title">🏆 Best Times</h3>
+      <div class="lb-diff-tabs">
+        <button class="lb-tab active" data-lbdiff="easy">Easy</button>
+        <button class="lb-tab" data-lbdiff="medium">Med</button>
+        <button class="lb-tab" data-lbdiff="hard">Hard</button>
+      </div>
+      <div id="leaderboardList" class="leaderboard-list">
+        <div class="lb-loading">Loading...</div>
+      </div>
+      <button class="refresh-btn" id="refreshLb">🔄 Refresh</button>
+    </aside>
+  </div>
+
+  <!-- Mobile nav -->
+  <nav class="mobile-nav">
+    <button class="mobile-nav-btn active" data-panel="game">💣</button>
+    <button class="mobile-nav-btn" data-panel="settings">⚙️</button>
+    <button class="mobile-nav-btn" data-panel="leaderboard">🏆</button>
+  </nav>
+
+  <script src="minesweeper.js"></script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DOGGED Tower Defence — Defend the Dogged!</title>
+  <meta name="description" content="Place speakers and megaphones to blast 'dogged' at everyone trying to silence Sigve.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="td.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔊</text></svg>">
+</head>
+<body>
+  <!-- Top bar -->
+  <header class="top-bar">
+    <a href="index.html" class="back-link">← dogged.no</a>
+    <div class="top-center">
+      <span class="gold-display" id="goldDisplay">💰 200</span>
+      <span class="lives-display" id="livesDisplay">❤️ 20</span>
+      <span class="wave-display" id="waveDisplay">☠️ Wave 0</span>
+      <span class="kills-display" id="killsDisplay">💀 0</span>
+    </div>
+    <div class="top-right">
+      <span class="score-display">Score: <strong id="scoreDisplay">0</strong></span>
+      <div class="speed-controls">
+        <button class="speed-btn active" data-speed="1">1×</button>
+        <button class="speed-btn" data-speed="2">2×</button>
+        <button class="speed-btn" data-speed="3">3×</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main game layout -->
+  <div class="game-container">
+    <!-- LEFT: Tower Shop -->
+    <aside class="tower-shop" id="towerShop">
+      <h3 class="shop-title">🔊 Towers</h3>
+      <div id="towerList" class="tower-list"></div>
+    </aside>
+
+    <!-- CENTER: Game Canvas -->
+    <main class="game-area">
+      <div class="canvas-wrapper" id="canvasWrapper">
+        <canvas id="gameCanvas" width="1000" height="600"></canvas>
+
+        <!-- Pre-game overlay -->
+        <div class="overlay" id="preOverlay">
+          <div class="overlay-box">
+            <h1>🔊 DOGGED TOWER DEFENCE</h1>
+            <p>They're coming to silence Sigve.<br>Place speakers and megaphones to blast "dogged" at them!</p>
+            <button class="big-btn" id="startGameBtn">▶ START GAME</button>
+          </div>
+        </div>
+
+        <!-- Wave idle overlay -->
+        <div class="overlay hidden" id="waveOverlay">
+          <button class="wave-btn" id="startWaveBtn">▶ Start Wave 1</button>
+        </div>
+
+        <!-- Game over overlay -->
+        <div class="overlay hidden" id="gameOverOverlay">
+          <div class="overlay-box game-over-box">
+            <h2>💀 SILENCE FALLS 💀</h2>
+            <p>They silenced Sigve... for now.</p>
+            <div class="go-stats">
+              <div class="go-stat"><span>Wave reached</span><strong id="goWave">0</strong></div>
+              <div class="go-stat"><span>Enemies dogged</span><strong id="goKills">0</strong></div>
+              <div class="go-stat"><span>Score</span><strong id="goScore">0</strong></div>
+            </div>
+            <div class="go-submit">
+              <input type="text" id="goName" placeholder="Your name" maxlength="20" class="go-input">
+              <button class="submit-btn" id="goSubmitBtn">Submit Score</button>
+            </div>
+            <div id="goSubmitStatus" class="submit-status hidden"></div>
+            <button class="retry-btn" id="goRetryBtn">🔄 Play Again</button>
+          </div>
+        </div>
+
+        <!-- Wave announcement -->
+        <div class="wave-announce hidden" id="waveAnnounce">
+          <span id="waveAnnounceText">Wave 1</span>
+        </div>
+
+        <!-- Boss warning -->
+        <div class="boss-warning hidden" id="bossWarning">
+          <span>⚠️ BOSS INCOMING ⚠️</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- RIGHT: Info Panel -->
+    <aside class="info-panel" id="infoPanel">
+      <div class="info-tabs">
+        <button class="info-tab active" data-itab="tower-info">🏗️ Info</button>
+        <button class="info-tab" data-itab="wave-info">📋 Waves</button>
+        <button class="info-tab" data-itab="td-leaderboard">🌍 Top</button>
+      </div>
+
+      <div class="info-tab-content active" id="itab-tower-info">
+        <div id="towerInfoContent">
+          <div class="info-placeholder">
+            <p>🔊</p>
+            <p>Select a tower from the shop or click a placed tower to see details.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-tab-content" id="itab-wave-info">
+        <h3 class="panel-title">📋 Wave Preview</h3>
+        <div id="waveInfoContent" class="wave-info-list"></div>
+      </div>
+
+      <div class="info-tab-content" id="itab-td-leaderboard">
+        <h3 class="panel-title">🌍 Leaderboard</h3>
+        <div id="tdLeaderboardList" class="leaderboard-list">
+          <div class="leaderboard-loading">Loading...</div>
+        </div>
+        <button class="refresh-btn" id="refreshTdLeaderboard">🔄 Refresh</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Mobile bottom nav -->
+  <nav class="mobile-nav">
+    <button class="mobile-nav-btn active" data-panel="game">🎮</button>
+    <button class="mobile-nav-btn" data-panel="shop">🏪</button>
+    <button class="mobile-nav-btn" data-panel="info">📊</button>
+  </nav>
+
+  <script src="td.js"></script>
+</body>
+</html>

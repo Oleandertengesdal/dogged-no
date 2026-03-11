@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DOGGED Game Center — All the Dogged Games</title>
+  <meta name="description" content="Play all the dogged games. Clicker, Tower Defence, Minesweeper, Snake — all dogged, all the time.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="games.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>">
+</head>
+<body>
+  <div class="dogged-rain" id="doggedRain"></div>
+
+  <header class="gc-header">
+    <a href="index.html" class="back-link">← dogged.no</a>
+    <h1 class="gc-title">🎮 DOGGED GAME CENTER</h1>
+    <p class="gc-sub">All the dogged games. One dogged place.</p>
+  </header>
+
+  <main class="gc-grid">
+    <!-- Clicker -->
+    <a href="clicker.html" class="game-card card-clicker">
+      <div class="game-card-glow"></div>
+      <div class="game-card-icon">🐶</div>
+      <div class="game-card-info">
+        <h2>Dogged Clicker</h2>
+        <p>The idle clicker game. Click Sigve. Earn doggeds. Ascend. Become the ultimate dogged machine.</p>
+        <div class="game-card-tags">
+          <span class="tag">Idle</span>
+          <span class="tag">Clicker</span>
+          <span class="tag">Prestige</span>
+        </div>
+      </div>
+      <div class="game-card-play">PLAY →</div>
+    </a>
+
+    <!-- Tower Defence -->
+    <a href="td.html" class="game-card card-td">
+      <div class="game-card-glow"></div>
+      <div class="game-card-icon">🔊</div>
+      <div class="game-card-info">
+        <h2>Dogged Tower Defence</h2>
+        <p>They want to silence Sigve. Place speakers and megaphones to blast "dogged" at everyone!</p>
+        <div class="game-card-tags">
+          <span class="tag">Strategy</span>
+          <span class="tag">Tower Defence</span>
+          <span class="tag">Endless</span>
+        </div>
+      </div>
+      <div class="game-card-play">PLAY →</div>
+    </a>
+
+    <!-- Minesweeper -->
+    <a href="minesweeper.html" class="game-card card-mines">
+      <div class="game-card-glow"></div>
+      <div class="game-card-icon">💣</div>
+      <div class="game-card-info">
+        <h2>Dogged Minesweeper</h2>
+        <p>Find all the dogged mines without blowing up. 3 difficulties with separate leaderboards for best time.</p>
+        <div class="game-card-tags">
+          <span class="tag">Puzzle</span>
+          <span class="tag">Easy / Medium / Hard</span>
+          <span class="tag">Timed</span>
+        </div>
+      </div>
+      <div class="game-card-play">PLAY →</div>
+    </a>
+
+    <!-- Snake -->
+    <a href="snake.html" class="game-card card-snake">
+      <div class="game-card-glow"></div>
+      <div class="game-card-icon">🐍</div>
+      <div class="game-card-info">
+        <h2>Dogged Snake</h2>
+        <p>Guide Sigve through the grid, eating doggeds to grow longer. Don't crash into yourself!</p>
+        <div class="game-card-tags">
+          <span class="tag">Arcade</span>
+          <span class="tag">Classic</span>
+          <span class="tag">High Score</span>
+        </div>
+      </div>
+      <div class="game-card-play">PLAY →</div>
+    </a>
+  </main>
+
+  <footer class="gc-footer">
+    <img src="dogged-guy.jpg" alt="" class="gc-footer-img">
+    <p>© 2026 dogged.no — More dogged games coming soon™</p>
+  </footer>
+
+  <script>
+    // Dogged rain background
+    const rain = document.getElementById('doggedRain');
+    for (let i = 0; i < 20; i++) {
+      const word = document.createElement('span');
+      word.className = 'dogged-word';
+      word.textContent = 'dogged';
+      word.style.left = Math.random() * 100 + '%';
+      word.style.animationDuration = 8 + Math.random() * 12 + 's';
+      word.style.animationDelay = Math.random() * 10 + 's';
+      word.style.fontSize = 0.8 + Math.random() * 1.2 + 'rem';
+      rain.appendChild(word);
+    }
+  </script>
+</body>
+</html>
