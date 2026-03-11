@@ -196,6 +196,7 @@ const UPGRADES = [
   { id: 'click4',  name: 'Fist of Dogged',     icon: '👊',  desc: 'Clicks ×5',                  cost: 5e6,       type: 'click_mult', value: 5,  clicks: 5 },
   { id: 'click5',  name: 'Mind Click',         icon: '🧠',  desc: 'Clicks ×10',                 cost: 5e8,       type: 'click_mult', value: 10, clicks: 10 },
   { id: 'click6',  name: 'Dogged Telekinesis', icon: '🔮',  desc: 'Clicks ×25',                 cost: 5e11,      type: 'click_mult', value: 25, clicks: 15 },
+  { id: 'click7',  name: 'Dogged',             icon: '🌟',  desc: 'Clicks x4',                  const: 500000,   type: 'click_milt', value: 4, clicks: 4 }, 
 
   // Building tier upgrades
   ...generateBuildingUpgrades(),
