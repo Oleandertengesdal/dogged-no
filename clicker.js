@@ -193,7 +193,7 @@ const UPGRADES = [
   { id: 'click1',  name: 'Stronger Finger',    icon: '👆',  desc: 'Clicks ×2',                  cost: 100,       type: 'click_mult', value: 2,  clicks: 1 },
   { id: 'click2',  name: 'Double Tap',         icon: '✌️',  desc: 'Clicks ×2',                  cost: 5000,      type: 'click_mult', value: 2,  clicks: 1 },
   { id: 'click3',  name: 'Power Slap',         icon: '🫲',  desc: 'Clicks ×3',                  cost: 50000,     type: 'click_mult', value: 3,  clicks: 3 },
-  { id: 'click7',  name: 'Dogged Knuckles',    icon: '🌟',  desc: 'Clicks ×4',                  cost: 500000,    type: 'click_mult', value: 4,  clicks: 4 },
+  { id: 'click8',  name: 'Dogged Knuckles',    icon: '🌟',  desc: 'Clicks ×4',                  cost: 500000,    type: 'click_mult', value: 4,  clicks: 4 },
   { id: 'click4',  name: 'Fist of Dogged',     icon: '👊',  desc: 'Clicks ×5',                  cost: 5e6,       type: 'click_mult', value: 5,  clicks: 5 },
   { id: 'click5',  name: 'Mind Click',         icon: '🧠',  desc: 'Clicks ×10',                 cost: 5e8,       type: 'click_mult', value: 10, clicks: 10 },
   { id: 'click6',  name: 'Dogged Telekinesis', icon: '🔮',  desc: 'Clicks ×25',                 cost: 5e11,      type: 'click_mult', value: 25, clicks: 15 },
