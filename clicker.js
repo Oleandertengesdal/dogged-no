@@ -5,7 +5,7 @@
 (() => {
 'use strict';
 
-const GAME_VERSION = '3.1';
+const GAME_VERSION = '3.2';
 
 // ===== ANTI-CHEAT =====
 const AC = {
@@ -107,6 +107,8 @@ const BUILDINGS = [
   { id: 'factory',    name: 'Dogged Factory',      icon: '🏭', desc: 'Mass-produces dogged merch',               baseCost: 130000,       baseDps: 260    },
   { id: 'university', name: 'Dogged University',   icon: '🎓', desc: 'PhD in Dogged Studies. Sigve is dean.',    baseCost: 1400000,      baseDps: 1400   },
   { id: 'satellite',  name: 'Dogged Satellite',    icon: '🛰️', desc: 'Broadcasts dogged planet-wide',            baseCost: 20000000,     baseDps: 7800   },
+  { id: 'dogcity',    name: 'Dog City',            icon: '🏙️', desc: 'An entire city speaks only in dogged',      baseCost: 55000000,     baseDps: 16000  },
+  { id: 'dognation',  name: 'Dog Nation',          icon: '🇳🇴', desc: 'A sovereign nation powered by dogged',     baseCost: 150000000,    baseDps: 29000  },
   { id: 'clonelab',   name: 'Sigve Clone Lab',     icon: '🧬', desc: 'Each clone says dogged independently',     baseCost: 330000000,    baseDps: 44000  },
   { id: 'dimension',  name: 'Dogged Dimension',    icon: '🌌', desc: 'An entire universe of dogged',             baseCost: 5.1e9,        baseDps: 260000 },
   { id: 'singularity',name: 'Dogged Singularity',  icon: '🕳️', desc: 'All reality is dogged',                    baseCost: 7.5e10,       baseDps: 1.6e6  },
@@ -209,6 +211,9 @@ const UPGRADES = [
   { id: 'syn_echo_parrot',   name: 'Echo Chamber',       icon: '📣', desc: 'Echoes + Parrots synergy: both ×1.5',    cost: 2000,    type: 'synergy', buildings: ['echo', 'parrot'], value: 1.5, req: { buildings: { echo: 5, parrot: 5 } }, clicks: 1 },
   { id: 'syn_chat_printer',  name: 'Spam Infrastructure', icon: '🖥️', desc: 'Chat Bots + Printers synergy: both ×1.5', cost: 100000, type: 'synergy', buildings: ['groupchat', 'printer'], value: 1.5, req: { buildings: { groupchat: 10, printer: 10 } }, clicks: 2 },
   { id: 'syn_factory_uni',   name: 'Industrial Studies',  icon: '📚', desc: 'Factory + Uni synergy: both ×2',         cost: 15e6,    type: 'synergy', buildings: ['factory', 'university'], value: 2, req: { buildings: { factory: 15, university: 15 } }, clicks: 3 },
+  { id: 'syn_sat_city',      name: 'Urban Broadcast',     icon: '📡', desc: 'Satellites + Dog City synergy: both ×2', cost: 2e9,     type: 'synergy', buildings: ['satellite', 'dogcity'], value: 2, req: { buildings: { satellite: 10, dogcity: 10 } }, clicks: 3 },
+  { id: 'syn_city_nation',   name: 'Dogged Republic',    icon: '🏛️', desc: 'Dog City + Dog Nation synergy: both ×2.5', cost: 8e9,    type: 'synergy', buildings: ['dogcity', 'dognation'], value: 2.5, req: { buildings: { dogcity: 15, dognation: 15 } }, clicks: 4 },
+  { id: 'syn_nation_clone',  name: 'Clone Army',         icon: '⚔️', desc: 'Dog Nation + Clones synergy: both ×2',    cost: 15e9,    type: 'synergy', buildings: ['dognation', 'clonelab'], value: 2, req: { buildings: { dognation: 10, clonelab: 10 } }, clicks: 4 },
   { id: 'syn_sat_clone',     name: 'Space Clones',        icon: '👽', desc: 'Satellites + Clones synergy: both ×2',   cost: 5e9,     type: 'synergy', buildings: ['satellite', 'clonelab'], value: 2, req: { buildings: { satellite: 10, clonelab: 10 } }, clicks: 3 },
   { id: 'syn_dim_sing',      name: 'Reality Collapse',    icon: '💥', desc: 'Dimensions + Singularities: both ×3',   cost: 5e12,    type: 'synergy', buildings: ['dimension', 'singularity'], value: 3, req: { buildings: { dimension: 5, singularity: 5 } }, clicks: 5 },
   { id: 'syn_hive_god',      name: 'Singularity Nexus',   icon: '🌀', desc: 'Hivemind + Dogged Itself: both ×3',     cost: 5e14,    type: 'synergy', buildings: ['hivemind', 'godmode'], value: 3, req: { buildings: { hivemind: 5, godmode: 5 } }, clicks: 8 },
@@ -359,6 +364,24 @@ const ACHIEVEMENTS = [
   { id: 'echo100',     name: 'Echo Lord',           icon: '🗣️', desc: 'Own 100 Echoes',             check: g => (g.buildings.echo?.count || 0) >= 100 },
   { id: 'godmode10',   name: 'Dogged Pantheon',     icon: '👁️', desc: 'Own 10 Dogged Itself',        check: g => (g.buildings.godmode?.count || 0) >= 10 },
   { id: 'godmode50',   name: 'Omnidogged',          icon: '👁️🌟', desc: 'Own 50 Dogged Itself',      check: g => (g.buildings.godmode?.count || 0) >= 50 },
+
+  // Dog City & Dog Nation milestones
+  { id: 'dogcity1',    name: 'City Founder',        icon: '🏙️', desc: 'Build your first Dog City',   check: g => (g.buildings.dogcity?.count || 0) >= 1 },
+  { id: 'dogcity25',   name: 'City Planner',        icon: '🏗️', desc: 'Own 25 Dog Cities',           check: g => (g.buildings.dogcity?.count || 0) >= 25 },
+  { id: 'dogcity100',  name: 'Metropolis',          icon: '🌆', desc: 'Own 100 Dog Cities',          check: g => (g.buildings.dogcity?.count || 0) >= 100 },
+  { id: 'dognation1',  name: 'Nation Builder',      icon: '🇳🇴', desc: 'Found your first Dog Nation',  check: g => (g.buildings.dognation?.count || 0) >= 1 },
+  { id: 'dognation25', name: 'Supreme Leader',      icon: '👑', desc: 'Own 25 Dog Nations',          check: g => (g.buildings.dognation?.count || 0) >= 25 },
+  { id: 'dognation100',name: 'World Domination',    icon: '🌍🐶', desc: 'Own 100 Dog Nations',       check: g => (g.buildings.dognation?.count || 0) >= 100 },
+
+  // Events
+  { id: 'events5',     name: 'Event Enjoyer',       icon: '⚡', desc: 'Experience 5 random events',   check: g => (g.eventsTriggered || 0) >= 5 },
+  { id: 'events25',    name: 'Event Hunter',        icon: '🎯', desc: 'Experience 25 random events',  check: g => (g.eventsTriggered || 0) >= 25 },
+  { id: 'events100',   name: 'Event Legend',        icon: '🌟⚡', desc: 'Experience 100 random events', check: g => (g.eventsTriggered || 0) >= 100 },
+
+  // Big number milestones
+  { id: 'earn1sx',     name: 'Sextillion Dogged',   icon: '🚀🚀', desc: 'Earn 1 Sextillion doggeds',   check: g => g.totalEarned >= 1e21 },
+  { id: 'earn1sp',     name: 'Septillion Dogged',   icon: '🌌🌌', desc: 'Earn 1 Septillion doggeds',   check: g => g.totalEarned >= 1e24 },
+  { id: 'earn1oc',     name: 'Octillion Dogged',    icon: '✴️', desc: 'Earn 1 Octillion doggeds',    check: g => g.totalEarned >= 1e27 },
 ];
 
 const CLICK_QUOTES = [
@@ -371,6 +394,14 @@ const CLICK_QUOTES = [
   '"My therapist asked me to stop. I said that\'s dogged."',
   '*clears throat* "dogged"', '"everything is dogged if you believe"',
   '"Dog City represent 🐶"', '"Vadsø? You mean Dog City."',
+  '"Dog City never sleeps. Too busy being dogged."',
+  '"The Dog Nation anthem is just someone saying dogged for 4 minutes."',
+  '"Citizens of Dog Nation salute you."',
+  '"Dog City council voted unanimously: more dogged."',
+  '"Breaking news from Dog Nation: still dogged."',
+  '"Dog City population: dogged."',
+  '"Dog Nation GDP: 100% dogged exports."',
+  '"The mayor of Dog City is literally a dog."',
   '"dogged? dogged."',
   '"I dream in dogged."', '"My first word was dogged."',
   '"Sigve would be proud."', '"dogged transcends language."',
@@ -404,9 +435,12 @@ const game = {
   totalSoulsEarned: 0,
   prestigeUpgrades: {},
   goldensCaught: 0,
+  eventsTriggered: 0,
   maxCombo: 0,
   combo: 0,
   comboTimer: null,
+  activeEvent: null,
+  activeEventTimer: null,
   startTime: Date.now(),
   lastSave: Date.now(),
   lastTick: Date.now(),
@@ -443,6 +477,9 @@ function cacheDom() {
     'playerName', 'submitScoreBtn', 'leaderboardList', 'refreshLeaderboard',
     'shopPanel', 'statsPanel', 'clickerArea',
     'realmBadge', 'realmListContainer', 'lbLastUpdated', 'trackingStatus',
+    'statEvents', 'productionBreakdown',
+    'prodTotalDps', 'prodSoulBoost', 'prodRealmMult', 'prodEventMult',
+    'prodGlobalMult', 'prodClickPower', 'prodEfficiency',
   ];
   ids.forEach(id => { DOM[id] = $(id); });
 }
@@ -450,9 +487,15 @@ function cacheDom() {
 // ===== HELPERS =====
 function formatNumber(n) {
   if (n === Infinity) return '∞';
+  if (n !== n) return '0'; // NaN guard
   if (n < 0) return '-' + formatNumber(-n);
   if (n < 1000) return n < 10 ? n.toFixed(1) : Math.floor(n).toString();
   const suffixes = [
+    { v: 1e63, s: 'Vg' }, { v: 1e60, s: 'Nd' }, { v: 1e57, s: 'Od' },
+    { v: 1e54, s: 'Sd' }, { v: 1e51, s: 'Sxd' }, { v: 1e48, s: 'Qid' },
+    { v: 1e45, s: 'Qad' }, { v: 1e42, s: 'Td' }, { v: 1e39, s: 'Dd' },
+    { v: 1e36, s: 'Ud' }, { v: 1e33, s: 'Dc' }, { v: 1e30, s: 'No' },
+    { v: 1e27, s: 'Oc' }, { v: 1e24, s: 'Sp' }, { v: 1e21, s: 'Sx' },
     { v: 1e18, s: 'Qi' }, { v: 1e15, s: 'Q' }, { v: 1e12, s: 'T' },
     { v: 1e9, s: 'B' }, { v: 1e6, s: 'M' }, { v: 1e3, s: 'K' },
   ];
@@ -569,9 +612,10 @@ function getBuildingCost(buildingData, amount = 1) {
   const count = game.buildings[buildingData.id]?.count || 0;
   const discount = getPrestigeEffect('building_discount');
   const realmCost = getRealmCostMult();
+  const eventCost = game._eventCostMult || 1;
   let total = 0;
   for (let i = 0; i < amount; i++) {
-    total += Math.floor(buildingData.baseCost * Math.pow(COST_MULTIPLIER, count + i) * discount * realmCost);
+    total += Math.floor(buildingData.baseCost * Math.pow(COST_MULTIPLIER, count + i) * discount * realmCost * eventCost);
   }
   return total;
 }
@@ -580,10 +624,11 @@ function getMaxAffordable(buildingData) {
   const count = game.buildings[buildingData.id]?.count || 0;
   const discount = getPrestigeEffect('building_discount');
   const realmCost = getRealmCostMult();
+  const eventCost = game._eventCostMult || 1;
   let total = 0;
   let n = 0;
   while (true) {
-    const next = Math.floor(buildingData.baseCost * Math.pow(COST_MULTIPLIER, count + n) * discount * realmCost);
+    const next = Math.floor(buildingData.baseCost * Math.pow(COST_MULTIPLIER, count + n) * discount * realmCost * eventCost);
     if (total + next > game.doggeds) break;
     total += next;
     n++;
@@ -617,6 +662,9 @@ function getClickValue() {
     isCrit = true;
   }
 
+  // Active event click multiplier
+  base *= (game._eventClickMult || 1);
+
   return { value: base, isCrit };
 }
 
@@ -636,6 +684,9 @@ function recalculateDps() {
 
   // Realm DPS multiplier
   globalMult *= getRealmDpsMult();
+
+  // Active event multiplier
+  globalMult *= (game._eventDpsMult || 1);
 
   let total = 0;
   for (const b of BUILDINGS) {
@@ -676,8 +727,10 @@ function handleClick(e) {
   // Combo
   game.combo++;
   if (game.combo > game.maxCombo) game.maxCombo = game.combo;
-  clearTimeout(game.comboTimer);
-  game.comboTimer = setTimeout(() => { game.combo = 0; }, 1500);
+  if (!game._eventComboFreeze) {
+    clearTimeout(game.comboTimer);
+    game.comboTimer = setTimeout(() => { game.combo = 0; }, 1500);
+  }
 
   // Visual feedback
   DOM.bigClicker.classList.remove('clicked');
@@ -890,6 +943,22 @@ function doPrestige() {
   game.combo = 0;
   game.runStartTime = Date.now();
 
+  // Clear any active event
+  if (game.activeEventTimer) {
+    clearTimeout(game.activeEventTimer);
+    game.activeEventTimer = null;
+  }
+  if (game.activeEvent) {
+    const evt = RANDOM_EVENTS.find(e => e.id === game.activeEvent);
+    if (evt) evt.remove();
+    game.activeEvent = null;
+    hideEventBanner();
+  }
+  game._eventClickMult = 1;
+  game._eventDpsMult = 1;
+  game._eventComboFreeze = false;
+  game._eventCostMult = 1;
+
   // Apply start buildings prestige effect
   const startBuildings = getPrestigeEffect('start_buildings');
   if (startBuildings > 0) {
@@ -1024,6 +1093,135 @@ function collectGolden() {
   showToast(`✨ Golden Dogged: ${reward}`);
   updateDisplay();
   checkAchievements();
+}
+
+// ===== RANDOM EVENTS =====
+const RANDOM_EVENTS = [
+  {
+    id: 'dogged_storm',
+    name: '🌩️ Dogged Storm!',
+    desc: 'All clicks give 5× for 15 seconds!',
+    duration: 15000,
+    apply: () => { game._eventClickMult = 5; },
+    remove: () => { game._eventClickMult = 1; },
+  },
+  {
+    id: 'sigve_blessing',
+    name: '🙏 Sigve\'s Blessing!',
+    desc: 'DPS doubled for 30 seconds!',
+    duration: 30000,
+    apply: () => { game._eventDpsMult = 2; },
+    remove: () => { game._eventDpsMult = 1; },
+  },
+  {
+    id: 'dogged_fever',
+    name: '🤒 Dogged Fever!',
+    desc: 'Combo never drops for 20 seconds!',
+    duration: 20000,
+    apply: () => { game._eventComboFreeze = true; },
+    remove: () => { game._eventComboFreeze = false; },
+  },
+  {
+    id: 'dog_parade',
+    name: '🐕 Dog Parade!',
+    desc: 'Earn 60 seconds of production instantly!',
+    duration: 0,
+    apply: () => {
+      const amount = game.dps * 60;
+      game.doggeds += amount;
+      game.totalEarned += amount;
+      game.totalEarnedThisRun += amount;
+    },
+    remove: () => {},
+  },
+  {
+    id: 'city_festival',
+    name: '🎉 Dog City Festival!',
+    desc: 'All production ×3 for 20 seconds!',
+    duration: 20000,
+    apply: () => { game._eventDpsMult = 3; },
+    remove: () => { game._eventDpsMult = 1; },
+  },
+  {
+    id: 'nation_decree',
+    name: '📜 Dog Nation Decree!',
+    desc: 'Building costs halved for 25 seconds!',
+    duration: 25000,
+    apply: () => { game._eventCostMult = 0.5; },
+    remove: () => { game._eventCostMult = 1; },
+  },
+];
+
+// Initialize event modifiers on game object
+game._eventClickMult = 1;
+game._eventDpsMult = 1;
+game._eventComboFreeze = false;
+game._eventCostMult = 1;
+
+let eventTimeout = null;
+
+function scheduleRandomEvent() {
+  if (eventTimeout) clearTimeout(eventTimeout);
+  // Events every 3-8 minutes
+  const delay = (180 + Math.random() * 300) * 1000;
+  eventTimeout = setTimeout(() => {
+    eventTimeout = null;
+    triggerRandomEvent();
+  }, delay);
+}
+
+function triggerRandomEvent() {
+  // Don't trigger if one is already active
+  if (game.activeEvent) {
+    scheduleRandomEvent();
+    return;
+  }
+
+  const event = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
+  game.eventsTriggered = (game.eventsTriggered || 0) + 1;
+
+  if (event.duration > 0) {
+    game.activeEvent = event.id;
+    event.apply();
+    showEventBanner(event);
+
+    game.activeEventTimer = setTimeout(() => {
+      event.remove();
+      game.activeEvent = null;
+      game.activeEventTimer = null;
+      hideEventBanner();
+      recalculateDps();
+      updateDisplay();
+      scheduleRandomEvent();
+    }, event.duration);
+  } else {
+    // Instant event
+    event.apply();
+    showToast(`⚡ ${event.name} ${event.desc}`);
+    updateDisplay();
+    checkAchievements();
+    scheduleRandomEvent();
+  }
+
+  recalculateDps();
+  updateDisplay();
+  checkAchievements();
+}
+
+function showEventBanner(event) {
+  let banner = document.querySelector('.event-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.className = 'event-banner';
+    document.body.appendChild(banner);
+  }
+  banner.innerHTML = `<strong>${event.name}</strong> <span>${event.desc}</span>`;
+  banner.classList.add('show');
+}
+
+function hideEventBanner() {
+  const banner = document.querySelector('.event-banner');
+  if (banner) banner.classList.remove('show');
 }
 
 // ===== RENDER SHOP =====
@@ -1182,6 +1380,70 @@ function renderPrestigeShop() {
   }
 }
 
+// ===== RENDER PRODUCTION BREAKDOWN =====
+function renderProductionBreakdown() {
+  const c = DOM.productionBreakdown;
+  if (!c) return;
+  c.innerHTML = '';
+
+  let globalMult = 1;
+  for (const u of UPGRADES) {
+    if (u.type === 'global_mult' && game.upgrades[u.id]) globalMult *= u.value;
+  }
+  const soulBoost = getSoulBoostMultiplier();
+  const realmMult = getRealmDpsMult();
+  const eventMult = game._eventDpsMult || 1;
+  const totalGlobal = globalMult * soulBoost * realmMult * eventMult;
+
+  let totalRawDps = 0;
+  for (const b of BUILDINGS) {
+    const state = game.buildings[b.id];
+    if (!state || state.count === 0) continue;
+    const rawDps = b.baseDps * state.count * state.multiplier;
+    totalRawDps += rawDps;
+    const finalDps = rawDps * totalGlobal;
+    const pct = game.dps > 0 ? (finalDps / game.dps * 100).toFixed(1) : '0';
+
+    const el = document.createElement('div');
+    el.className = 'production-row';
+    el.innerHTML = `
+      <span class="prod-icon">${b.icon}</span>
+      <span class="prod-name">${b.name} <span class="prod-count">×${state.count}</span></span>
+      <span class="prod-dps">${formatNumber(finalDps)}/s</span>
+      <span class="prod-pct">${pct}%</span>
+      <div class="prod-bar"><div class="prod-bar-fill" style="width:${pct}%"></div></div>
+    `;
+    c.appendChild(el);
+  }
+
+  // Update summary
+  if (DOM.prodTotalDps) DOM.prodTotalDps.textContent = formatNumber(game.dps) + '/s';
+  if (DOM.prodSoulBoost) DOM.prodSoulBoost.textContent = '×' + soulBoost.toFixed(2);
+  if (DOM.prodRealmMult) DOM.prodRealmMult.textContent = '×' + realmMult.toFixed(1);
+  if (DOM.prodEventMult) {
+    DOM.prodEventMult.textContent = '×' + eventMult.toFixed(1);
+    DOM.prodEventMult.style.color = eventMult > 1 ? '#4caf50' : '';
+  }
+  if (DOM.prodGlobalMult) DOM.prodGlobalMult.textContent = '×' + globalMult.toFixed(2);
+  if (DOM.prodClickPower) DOM.prodClickPower.textContent = formatNumber(getClickValue().value);
+  if (DOM.prodEfficiency) {
+    const totalBuildingCost = BUILDINGS.reduce((sum, b) => {
+      const state = game.buildings[b.id];
+      if (!state || state.count === 0) return sum;
+      let cost = 0;
+      for (let i = 0; i < state.count; i++) {
+        cost += b.baseCost * Math.pow(COST_MULTIPLIER, i);
+      }
+      return sum + cost;
+    }, 0);
+    if (totalBuildingCost > 0 && game.dps > 0) {
+      DOM.prodEfficiency.textContent = formatNumber(game.dps / totalBuildingCost * 1000) + ' dps/1K spent';
+    } else {
+      DOM.prodEfficiency.textContent = '-';
+    }
+  }
+}
+
 // ===== RENDER ACHIEVEMENTS =====
 function renderAchievements() {
   const c = DOM.achievementsContainer;
@@ -1256,6 +1518,7 @@ function updateDisplay() {
   DOM.statTotalSouls.textContent = formatNumber(game.totalSoulsEarned);
   DOM.statMaxCombo.textContent = game.maxCombo;
   DOM.statGoldens.textContent = game.goldensCaught;
+  if (DOM.statEvents) DOM.statEvents.textContent = game.eventsTriggered || 0;
 
   if (DOM.statRealm) {
     DOM.statRealm.textContent = `${realm.icon} ${realm.name}`;
@@ -1335,6 +1598,7 @@ function gameTick() {
   if (shopRenderCounter >= 30) {
     shopRenderCounter = 0;
     renderShop();
+    renderProductionBreakdown();
     checkAchievements();
   }
 }
@@ -1360,6 +1624,7 @@ function getSaveData() {
     totalSoulsEarned: game.totalSoulsEarned,
     prestigeUpgrades: game.prestigeUpgrades,
     goldensCaught: game.goldensCaught,
+    eventsTriggered: game.eventsTriggered,
     maxCombo: game.maxCombo,
     startTime: game.startTime,
     lastSave: Date.now(),
@@ -1369,7 +1634,7 @@ function getSaveData() {
     realmCompletions: game.realmCompletions,
     runStartTime: game.runStartTime,
     fastestRun: game.fastestRun,
-    version: 3,
+    version: 3.2,
   };
   data._checksum = AC.checksum(data);
   return data;
@@ -1425,6 +1690,7 @@ function loadGame() {
     game.totalSoulsEarned = data.totalSoulsEarned || 0;
     game.prestigeUpgrades = data.prestigeUpgrades || {};
     game.goldensCaught = data.goldensCaught || 0;
+    game.eventsTriggered = data.eventsTriggered || 0;
     game.maxCombo = data.maxCombo || 0;
     game.startTime = data.startTime || Date.now();
 
@@ -1699,6 +1965,7 @@ function setupTabs() {
       tab.classList.add('active');
       $('rtab-' + tab.dataset.rtab)?.classList.add('active');
       if (tab.dataset.rtab === 'leaderboard') fetchLeaderboard(false);
+      if (tab.dataset.rtab === 'production') renderProductionBreakdown();
     });
   });
 
@@ -1799,6 +2066,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   renderShop();
   renderAchievements();
+  renderProductionBreakdown();
   updateDisplay();
 
   // Show offline earnings banner if applicable
@@ -1846,6 +2114,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Golden doggeds
   scheduleGolden();
+
+  // Random events
+  scheduleRandomEvent();
 
   // Leaderboard fetch + auto-refresh
   setTimeout(fetchLeaderboard, 2000);

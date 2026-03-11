@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dogged Clicker v3.1 — The Idle Game with Realms</title>
+  <title>Dogged Clicker v3.2 — The Idle Game with Realms</title>
   <meta name="description" content="Click Sigve. Earn doggeds. Ascend. Become the ultimate dogged machine.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -48,6 +48,8 @@
         <button class="buy-amt active" data-amt="1">×1</button>
         <button class="buy-amt" data-amt="10">×10</button>
         <button class="buy-amt" data-amt="25">×25</button>
+        <button class="buy-amt" data-amt="50">×50</button>
+        <button class="buy-amt" data-amt="100">×100</button>
         <button class="buy-amt" data-amt="max">MAX</button>
       </div>
 
@@ -103,6 +105,7 @@
     <aside class="stats-panel" id="statsPanel">
       <div class="right-tabs">
         <button class="right-tab active" data-rtab="stats">📊</button>
+        <button class="right-tab" data-rtab="production">🏭</button>
         <button class="right-tab" data-rtab="achievements">🏆</button>
         <button class="right-tab" data-rtab="leaderboard">🌍</button>
       </div>
@@ -121,6 +124,7 @@
           <div class="stat-row"><span>Total souls earned:</span><strong id="statTotalSouls">0</strong></div>
           <div class="stat-row"><span>Combo record:</span><strong id="statMaxCombo">0</strong></div>
           <div class="stat-row"><span>Goldens caught:</span><strong id="statGoldens">0</strong></div>
+          <div class="stat-row"><span>Events triggered:</span><strong id="statEvents">0</strong></div>
           <div class="stat-row"><span>Current realm:</span><strong id="statRealm">🌍 Dogged Prime</strong></div>
           <div class="stat-row"><span>Time played:</span><strong id="statTimePlayed">0s</strong></div>
         </div>
@@ -129,6 +133,21 @@
           <button class="save-btn" id="exportBtn">📋 Export</button>
           <button class="save-btn" id="importBtn">📥 Import</button>
           <button class="save-btn reset-btn" id="resetBtn">🗑️ Reset</button>
+        </div>
+      </div>
+
+      <div class="right-tab-content" id="rtab-production">
+        <h3 class="panel-title">🏭 Production Breakdown</h3>
+        <div id="productionBreakdown" class="production-breakdown"></div>
+        <div class="production-summary">
+          <h4 class="production-summary-title">Summary</h4>
+          <div class="stat-row"><span>Total DPS:</span><strong id="prodTotalDps">0</strong></div>
+          <div class="stat-row"><span>Soul Boost:</span><strong id="prodSoulBoost">×1.00</strong></div>
+          <div class="stat-row"><span>Realm Mult:</span><strong id="prodRealmMult">×1.00</strong></div>
+          <div class="stat-row"><span>Event Mult:</span><strong id="prodEventMult">×1.00</strong></div>
+          <div class="stat-row"><span>Global Mult:</span><strong id="prodGlobalMult">×1.00</strong></div>
+          <div class="stat-row"><span>Click Power:</span><strong id="prodClickPower">1</strong></div>
+          <div class="stat-row"><span>Efficiency:</span><strong id="prodEfficiency">-</strong></div>
         </div>
       </div>
 
