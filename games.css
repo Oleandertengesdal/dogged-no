@@ -150,6 +150,11 @@ h1, h2, h3 { font-family: 'Bangers', cursive; letter-spacing: 2px; }
 .card-mines .game-card-play { color: var(--purple); }
 .card-snake .game-card-play { color: var(--green); }
 
+.card-wordle { border-color: rgba(247, 201, 72, 0.2); }
+.card-wordle:hover { border-color: rgba(247, 201, 72, 0.5); }
+.card-wordle .game-card-glow { background: radial-gradient(circle at 30% 50%, rgba(247,201,72,0.08), transparent 70%); }
+.card-wordle .game-card-play { color: var(--accent); }
+
 /* ===== FOOTER ===== */
 .gc-footer {
   text-align: center; padding: 3rem 1rem;

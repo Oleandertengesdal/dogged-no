@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Dogged Wordle 🔤 | dogged.no</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="wordle.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔤</text></svg>">
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="top-bar">
+  <a href="games.html" class="back-link">← Games</a>
+  <div class="top-title">🔤 DOGGED WORDLE</div>
+  <div class="top-actions">
+    <button class="icon-btn" id="helpBtn" title="How to play">❓</button>
+    <button class="icon-btn" id="statsBtn" title="Stats">📊</button>
+  </div>
+</header>
+
+<!-- DOGGED QUOTE BANNER -->
+<div class="quote-banner" id="quoteBanner">
+  <span id="quoteText">Sigve would get this in one guess. Be like Sigve.</span>
+</div>
+
+<!-- MAIN GAME -->
+<main class="game-area">
+  <!-- Board: 6 rows × 5 cells -->
+  <div class="board" id="board">
+    <!-- rows created by JS -->
+  </div>
+
+  <!-- Result overlay -->
+  <div class="result-overlay hidden" id="resultOverlay">
+    <div class="result-box">
+      <h2 id="resultTitle">😎</h2>
+      <p id="resultMsg">Nice one!</p>
+      <div id="resultWord" class="result-word"></div>
+      <div id="resultShare" class="result-share"></div>
+      <button class="btn-share" id="shareBtn">📋 COPY RESULT</button>
+      <div id="shareStatus" class="share-status"></div>
+      <div class="next-timer">Next Dogged Wordle in <span id="nextTimer">--:--:--</span></div>
+    </div>
+  </div>
+
+  <!-- Help modal -->
+  <div class="modal hidden" id="helpModal">
+    <div class="modal-box">
+      <button class="modal-close" id="helpClose">✕</button>
+      <h2>HOW TO PLAY</h2>
+      <p>Guess the <strong>DOGGED WORD</strong> in 6 tries.</p>
+      <ul>
+        <li>Each guess must be a valid 5-letter word.</li>
+        <li>After each guess, the tiles change color:</li>
+      </ul>
+      <div class="example-row">
+        <div class="ex-tile correct">D</div>
+        <div class="ex-tile">O</div>
+        <div class="ex-tile">G</div>
+        <div class="ex-tile">G</div>
+        <div class="ex-tile">Y</div>
+      </div>
+      <p><strong class="c-green">Green</strong> — correct letter, correct spot.</p>
+      <div class="example-row">
+        <div class="ex-tile">S</div>
+        <div class="ex-tile present">I</div>
+        <div class="ex-tile">G</div>
+        <div class="ex-tile">V</div>
+        <div class="ex-tile">E</div>
+      </div>
+      <p><strong class="c-yellow">Yellow</strong> — correct letter, wrong spot.</p>
+      <div class="example-row">
+        <div class="ex-tile">B</div>
+        <div class="ex-tile">A</div>
+        <div class="ex-tile absent">R</div>
+        <div class="ex-tile">K</div>
+        <div class="ex-tile">S</div>
+      </div>
+      <p><strong class="c-gray">Gray</strong> — letter not in the word.</p>
+      <hr>
+      <p class="dogged-tip">💡 A new Dogged Wordle every day at midnight (UTC).</p>
+      <button class="btn-close-modal" id="helpDone">GOT IT</button>
+    </div>
+  </div>
+
+  <!-- Stats modal -->
+  <div class="modal hidden" id="statsModal">
+    <div class="modal-box">
+      <button class="modal-close" id="statsClose">✕</button>
+      <h2>📊 STATISTICS</h2>
+      <div class="stats-row">
+        <div class="stat-item"><span id="sPlayed">0</span><label>Played</label></div>
+        <div class="stat-item"><span id="sWin">0</span><label>Win %</label></div>
+        <div class="stat-item"><span id="sStreak">0</span><label>Streak</label></div>
+        <div class="stat-item"><span id="sMaxStreak">0</span><label>Max Streak</label></div>
+      </div>
+      <h3>GUESS DISTRIBUTION</h3>
+      <div class="dist-chart" id="distChart">
+        <!-- rows 1–6 by JS -->
+      </div>
+      <button class="btn-close-modal" id="statsDone">CLOSE</button>
+    </div>
+  </div>
+
+  <!-- Keyboard -->
+  <div class="keyboard" id="keyboard">
+    <div class="kb-row">
+      <button class="key" data-key="Q">Q</button>
+      <button class="key" data-key="W">W</button>
+      <button class="key" data-key="E">E</button>
+      <button class="key" data-key="R">R</button>
+      <button class="key" data-key="T">T</button>
+      <button class="key" data-key="Y">Y</button>
+      <button class="key" data-key="U">U</button>
+      <button class="key" data-key="I">I</button>
+      <button class="key" data-key="O">O</button>
+      <button class="key" data-key="P">P</button>
+    </div>
+    <div class="kb-row">
+      <div class="spacer-half"></div>
+      <button class="key" data-key="A">A</button>
+      <button class="key" data-key="S">S</button>
+      <button class="key" data-key="D">D</button>
+      <button class="key" data-key="F">F</button>
+      <button class="key" data-key="G">G</button>
+      <button class="key" data-key="H">H</button>
+      <button class="key" data-key="J">J</button>
+      <button class="key" data-key="K">K</button>
+      <button class="key" data-key="L">L</button>
+      <div class="spacer-half"></div>
+    </div>
+    <div class="kb-row">
+      <button class="key key-wide" data-key="ENTER">ENTER</button>
+      <button class="key" data-key="Z">Z</button>
+      <button class="key" data-key="X">X</button>
+      <button class="key" data-key="C">C</button>
+      <button class="key" data-key="V">V</button>
+      <button class="key" data-key="B">B</button>
+      <button class="key" data-key="N">N</button>
+      <button class="key" data-key="M">M</button>
+      <button class="key key-wide" data-key="BACKSPACE">⌫</button>
+    </div>
+  </div>
+</main>
+
+<!-- Toast container -->
+<div class="toast-container" id="toasts"></div>
+
+<!-- Confetti canvas -->
+<canvas id="confetti" class="confetti-canvas"></canvas>
+
+<script src="wordle.js"></script>
+</body>
+</html>
