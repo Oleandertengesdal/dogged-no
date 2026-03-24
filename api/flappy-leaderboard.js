@@ -1,160 +1,154 @@
-import { Redis } from '@upstash/redis';
+const { Redis } = require('@upstash/redis');
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+const kv = new Redis({
+  url: process.env.KV_REST_API_URL,
+  token: process.env.KV_REST_API_TOKEN,
 });
 
-const GAME = 'FLAPPY';
-const LB_KEY = 'leaderboard:flappy';
-const NAME_KEY = 'leaderboard:flappy:names';
-const RATE_KEY = 'leaderboard:flappy:rate';
+const KEY = 'dogged:flappy-leaderboard';
+const MAX_ENTRIES = 50;
 
-const MAX_SCORE = 10000;
-const WINDOW_MS = 10_000;
-const MAX_POSTS_PER_WINDOW = 4;
-
-function hash(str) {
-  let h = 2166136261;
+function simpleHash(str) {
+  let h = 0;
   for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619);
+    const c = str.charCodeAt(i);
+    h = ((h << 5) - h) + c;
+    h |= 0;
   }
-  return (h >>> 0).toString(16).padStart(8, '0');
+  return (h >>> 0).toString(36);
 }
 
-function secret() {
-  return ['D0G', 'G3D', '-S1', 'GV3', '-20', '26'].join('');
-}
-
-function expectedSig(pid, score, at) {
-  return hash(`${GAME}|${pid}|${score}|${at}|${secret()}`);
-}
-
-function sanitizeName(name) {
-  return String(name || '')
-    .toUpperCase()
-    .replace(/[^A-Z0-9 _-]/g, '')
-    .trim()
-    .slice(0, 12);
-}
-
-async function withRateLimit(pid) {
-  const key = `${RATE_KEY}:${pid}`;
-  const count = await redis.incr(key);
-  if (count === 1) {
-    await redis.pexpire(key, WINDOW_MS);
+function verifyPayload(data, signature) {
+  const CLIENT_SECRET = process.env.DOGGED_CLIENT_SECRET;
+  if (!CLIENT_SECRET) {
+    console.error('DOGGED_CLIENT_SECRET env var is not set');
+    return false;
   }
-  return count <= MAX_POSTS_PER_WINDOW;
+  const str = `FLAPPY|${data.name}|${data.score}|${data.ts}|${data.pid}|${CLIENT_SECRET}`;
+  return simpleHash(str) === signature;
 }
 
-export default async function handler(req, res) {
-  res.setHeader('Cache-Control', 'no-store');
+function isSubmissionPlausible(data) {
+  const now = Date.now();
+  if (Math.abs(now - data.ts) > 10 * 60 * 1000) return false;
+  if (!data.name || data.name.length < 1 || data.name.length > 20) return false;
+  if (/<|>|&/.test(data.name)) return false;
+  if (typeof data.score !== 'number' || data.score < 1 || data.score > 10000) return false;
+  if (!data.pid || typeof data.pid !== 'string' || data.pid.length < 32) return false;
+  return true;
+}
+
+async function getEntries() {
+  try {
+    const raw = await kv.get(KEY);
+    if (raw === null || raw === undefined) return [];
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  } catch (e) {
+    console.error('Redis GET error:', e.message);
+    return null;
+  }
+}
+
+module.exports = async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
     if (req.method === 'GET') {
-      const leaderboard = await redis.zrange(LB_KEY, 0, 4, { rev: true, withScores: true });
-      const items = [];
-
-      if (Array.isArray(leaderboard)) {
-        for (let i = 0; i < leaderboard.length; i += 2) {
-          const raw = leaderboard[i];
-          const score = Number(leaderboard[i + 1] || 0);
-          const [pid, name] = String(raw || '').split('|');
-          if (!pid || !name) continue;
-          items.push({ pid, name, score });
-        }
+      const entries = await getEntries();
+      if (entries === null) {
+        return res.status(200).json({ ok: true, leaderboard: [], message: 'Storage unavailable' });
       }
-
-      return res.status(200).json({ ok: true, leaderboard: items });
+      return res.status(200).json({ ok: true, leaderboard: entries, ts: Date.now() });
     }
 
     if (req.method === 'POST') {
-      const body = req.body || {};
-      const pid = String(body.pid || '').trim().slice(0, 40);
-      const name = sanitizeName(body.name);
-      const score = Math.floor(Number(body.score));
-      const at = Number(body.at);
-      const sig = String(body.sig || '');
+      const { name, score, ts, sig, pid } = req.body;
 
-      if (!pid || pid.length < 8) {
-        return res.status(400).json({ ok: false, error: 'Invalid player id' });
-      }
-      if (!name || name.length < 2) {
-        return res.status(400).json({ ok: false, error: 'Invalid name' });
-      }
-      if (!Number.isFinite(score) || score <= 0 || score > MAX_SCORE) {
-        return res.status(400).json({ ok: false, error: 'Invalid score' });
-      }
-      if (!Number.isFinite(at) || Math.abs(Date.now() - at) > 5 * 60 * 1000) {
-        return res.status(400).json({ ok: false, error: 'Invalid timestamp' });
+      if (!isSubmissionPlausible({ name, score, ts, pid })) {
+        return res.status(400).json({ ok: false, error: 'Invalid submission' });
       }
 
-      const expected = expectedSig(pid, score, at);
-      if (sig !== expected) {
-        return res.status(403).json({ ok: false, error: 'Bad signature' });
+      if (!verifyPayload({ name, score, ts, pid }, sig)) {
+        return res.status(403).json({ ok: false, error: 'Signature mismatch' });
       }
 
-      const allowed = await withRateLimit(pid);
-      if (!allowed) {
-        return res.status(429).json({ ok: false, error: 'Too many submissions. Slow down.' });
+      let entries = await getEntries();
+      if (entries === null) {
+        return res.status(503).json({ ok: false, error: 'Leaderboard storage not available' });
       }
 
-      const existingPidForName = await redis.hget(NAME_KEY, name);
-      if (existingPidForName && existingPidForName !== pid) {
-        return res.status(409).json({ ok: false, error: 'Name already in use' });
+      const byPid = entries.find((e) => e.pid === pid);
+      const byName = entries.find((e) => e.name === name);
+
+      if (byPid && (Date.now() - byPid.updatedAt) < 12000) {
+        return res.status(429).json({ ok: false, error: 'Too many submissions. Wait a moment.' });
       }
 
-      const existingEntry = await redis.zrange(LB_KEY, 0, -1, { rev: true });
-      let currentBest = 0;
-      let existingMember = null;
+      if (byName && byName.pid && byName.pid !== pid) {
+        return res.status(409).json({ ok: false, error: 'Name taken by another player.' });
+      }
 
-      if (Array.isArray(existingEntry)) {
-        for (const member of existingEntry) {
-          const [memberPid, memberName] = String(member || '').split('|');
-          if (memberPid === pid) {
-            existingMember = member;
-            if (memberName !== name) {
-              await redis.hdel(NAME_KEY, memberName);
-            }
-            break;
-          }
+      if (byPid) {
+        if (byPid.name !== name) {
+          entries = entries.filter((e) => e.pid !== pid);
+          entries.push({
+            name,
+            score,
+            pid,
+            createdAt: byPid.createdAt || Date.now(),
+            updatedAt: Date.now(),
+          });
+        } else if (score > byPid.score) {
+          byPid.score = score;
+          byPid.updatedAt = Date.now();
+        } else {
+          byPid.updatedAt = Date.now();
         }
-      }
-
-      if (existingMember) {
-        const scoreArr = await redis.zscore(LB_KEY, existingMember);
-        currentBest = Number(scoreArr || 0);
-      }
-
-      if (score <= currentBest) {
-        return res.status(200).json({ ok: true, improved: false, message: 'Score not higher than your best' });
-      }
-
-      const newMember = `${pid}|${name}`;
-      if (existingMember && existingMember !== newMember) {
-        await redis.zrem(LB_KEY, existingMember);
-      }
-
-      await redis.zadd(LB_KEY, { score, member: newMember });
-      await redis.hset(NAME_KEY, { [name]: pid });
-
-      const keep = await redis.zrange(LB_KEY, 0, -1, { rev: true });
-      if (Array.isArray(keep) && keep.length > 50) {
-        const toTrim = keep.slice(50);
-        for (const member of toTrim) {
-          const [, trimName] = String(member || '').split('|');
-          if (trimName) await redis.hdel(NAME_KEY, trimName);
-          await redis.zrem(LB_KEY, member);
+      } else if (byName) {
+        byName.pid = pid;
+        if (score > byName.score) {
+          byName.score = score;
         }
+        byName.updatedAt = Date.now();
+      } else {
+        entries.push({
+          name,
+          score,
+          pid,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
       }
 
-      return res.status(200).json({ ok: true, improved: true });
+      entries.sort((a, b) => b.score - a.score);
+      entries = entries.slice(0, MAX_ENTRIES);
+
+      try {
+        await kv.set(KEY, entries);
+      } catch (e) {
+        console.error('Redis SET error:', e);
+        return res.status(503).json({ ok: false, error: 'Could not save to leaderboard' });
+      }
+
+      const rank = entries.findIndex((e) => e.name === name) + 1;
+      return res.status(200).json({ ok: true, rank, total: entries.length });
     }
 
-    res.setHeader('Allow', 'GET, POST');
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   } catch (err) {
-    return res.status(500).json({ ok: false, error: 'Server error' });
+    console.error('Flappy leaderboard error:', err);
+    return res.status(500).json({ ok: false, error: 'Internal server error' });
   }
-}
+};

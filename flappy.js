@@ -33,13 +33,19 @@
   const H = canvas.height;
   const GROUND = H - 58;
 
-  const DEVICE_PID_KEY = 'dogged-device-pid';
+  const DEVICE_PID_KEY = 'dogged-flappy-pid';
   const BEST_KEY = 'dogged-flappy-best';
 
   function makePid() {
     let pid = localStorage.getItem(DEVICE_PID_KEY);
     if (!pid) {
-      pid = 'pid-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+      pid = typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          });
       localStorage.setItem(DEVICE_PID_KEY, pid);
     }
     return pid;
@@ -48,20 +54,21 @@
   const devicePid = makePid();
 
   function simpleHash(str) {
-    let h = 2166136261;
+    let h = 0;
     for (let i = 0; i < str.length; i++) {
-      h ^= str.charCodeAt(i);
-      h = Math.imul(h, 16777619);
+      const c = str.charCodeAt(i);
+      h = ((h << 5) - h) + c;
+      h |= 0;
     }
-    return (h >>> 0).toString(16).padStart(8, '0');
+    return (h >>> 0).toString(36);
   }
 
   function clientSecret() {
     return ['D0G', 'G3D', '-S1', 'GV3', '-20', '26'].join('');
   }
 
-  function makeSig(pid, score, at) {
-    return simpleHash(`FLAPPY|${pid}|${score}|${at}|${clientSecret()}`);
+  function makeSig(name, score, ts, pid) {
+    return simpleHash(`FLAPPY|${name}|${score}|${ts}|${pid}|${clientSecret()}`);
   }
 
   const game = {
@@ -451,13 +458,13 @@
     submitBtn.disabled = true;
     submitStatus.textContent = 'Submitting...';
 
-    const at = Date.now();
+    const ts = Date.now();
     const payload = {
-      pid: devicePid,
       name,
       score: game.score,
-      at,
-      sig: makeSig(devicePid, game.score, at),
+      ts,
+      pid: devicePid,
+      sig: makeSig(name, game.score, ts, devicePid),
     };
 
     try {
