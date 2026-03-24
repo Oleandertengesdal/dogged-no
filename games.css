@@ -160,6 +160,11 @@ h1, h2, h3 { font-family: 'Bangers', cursive; letter-spacing: 2px; }
 .card-2048 .game-card-glow { background: radial-gradient(circle at 30% 50%, rgba(237,194,46,0.1), transparent 70%); }
 .card-2048 .game-card-play { color: #edc22e; }
 
+.card-flappy { border-color: rgba(67, 217, 146, 0.24); }
+.card-flappy:hover { border-color: rgba(67, 217, 146, 0.56); }
+.card-flappy .game-card-glow { background: radial-gradient(circle at 30% 50%, rgba(67,217,146,0.1), transparent 70%); }
+.card-flappy .game-card-play { color: #43d992; }
+
 .card-wordle { border-color: rgba(247, 201, 72, 0.2); }
 .card-wordle:hover { border-color: rgba(247, 201, 72, 0.5); }
 .card-wordle .game-card-glow { background: radial-gradient(circle at 30% 50%, rgba(247,201,72,0.08), transparent 70%); }

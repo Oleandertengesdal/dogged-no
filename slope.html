@@ -2,114 +2,837 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Dogged Slope ⚡ | dogged.no</title>
-  <meta name="description" content="Race down an endless dogged slope, dodge blockers, and climb the leaderboard.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="slope.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dogged Slope Runner</title>
+  <style>
+    :root {
+      --bg: #050912;
+      --panel: #0b1222;
+      --panel-border: rgba(116, 169, 255, 0.22);
+      --text: #dfe9ff;
+      --muted: #96abd8;
+      --cyan: #4fd8ff;
+      --green: #72ffb6;
+      --btn: #2a4f86;
+      --btn-hover: #3865a8;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 10%, rgba(37, 97, 196, 0.24) 0%, rgba(5, 9, 18, 0) 35%),
+        radial-gradient(circle at 80% 0%, rgba(68, 219, 255, 0.14) 0%, rgba(5, 9, 18, 0) 30%),
+        linear-gradient(180deg, #060b16 0%, #03060d 100%);
+      display: grid;
+      place-items: center;
+      padding: 24px 12px;
+    }
+
+    .wrap {
+      width: min(980px, 100%);
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(11, 18, 34, 0.96), rgba(8, 14, 28, 0.94));
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      box-shadow: 0 14px 38px rgba(0, 0, 0, 0.35);
+      overflow: hidden;
+    }
+
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(116, 169, 255, 0.18);
+      flex-wrap: wrap;
+    }
+
+    .title {
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: var(--green);
+      font-size: clamp(1.05rem, 2vw, 1.35rem);
+      text-transform: uppercase;
+    }
+
+    .stats {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      background: rgba(28, 43, 70, 0.9);
+      border: 1px solid rgba(114, 255, 182, 0.25);
+      border-radius: 10px;
+      padding: 6px 10px;
+      min-width: 110px;
+      text-align: center;
+    }
+
+    .chip .k {
+      display: block;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      margin-bottom: 2px;
+    }
+
+    .chip .v {
+      font-weight: 800;
+      color: var(--cyan);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 8px 12px;
+      background: var(--btn);
+      color: #e9f2ff;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .btn:hover { background: var(--btn-hover); }
+
+    .canvas-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #040912;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(4, 8, 16, 0.64);
+      text-align: center;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease;
+    }
+
+    .overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .overlay-card {
+      width: min(360px, 100%);
+      border-radius: 14px;
+      border: 1px solid rgba(114, 255, 182, 0.3);
+      background: rgba(9, 16, 32, 0.94);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4);
+      padding: 18px 16px;
+    }
+
+    .overlay h2 {
+      margin: 0 0 8px;
+      color: #beffda;
+      font-size: 1.8rem;
+    }
+
+    .overlay p {
+      margin: 0 0 12px;
+      color: #a6bce8;
+      line-height: 1.45;
+    }
+
+    .touch-row {
+      display: none;
+      gap: 10px;
+      padding: 10px;
+      border-top: 1px solid rgba(116, 169, 255, 0.18);
+    }
+
+    .touch-btn {
+      flex: 1;
+      border: 1px solid rgba(79, 216, 255, 0.35);
+      background: rgba(29, 51, 84, 0.8);
+      color: #dff4ff;
+      border-radius: 10px;
+      font-weight: 700;
+      padding: 12px 10px;
+      font-size: 1rem;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .touch-btn:active {
+      background: rgba(56, 98, 161, 0.95);
+    }
+
+    .leaderboard {
+      padding: 14px;
+    }
+
+    .leaderboard h3 {
+      margin: 0 0 10px;
+      font-size: 1.02rem;
+      color: #c7d8fb;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .lb-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 6px;
+    }
+
+    .lb-item {
+      display: grid;
+      grid-template-columns: 32px 1fr auto;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(116, 169, 255, 0.2);
+      background: rgba(13, 24, 45, 0.88);
+      border-radius: 10px;
+      padding: 7px 10px;
+      font-size: 0.95rem;
+    }
+
+    .lb-rank { text-align: center; color: #86a7e5; font-weight: 800; }
+    .lb-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #d6e5ff;
+      font-weight: 600;
+    }
+    .lb-score {
+      font-weight: 800;
+      color: #84ffd0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .lb-empty {
+      color: #8ea8da;
+      margin: 0;
+      font-size: 0.93rem;
+    }
+
+    @media (max-width: 700px) {
+      .chip { min-width: 96px; }
+      .touch-row { display: flex; }
+    }
+  </style>
 </head>
 <body>
-
-<header class="top-bar">
-  <a href="games.html" class="back-link">← Games</a>
-  <div class="game-info">
-    <span class="info-label">SCORE</span>
-    <span id="scoreDisplay" class="info-val">0</span>
-  </div>
-  <div class="game-info">
-    <span class="info-label">HIGH</span>
-    <span id="highDisplay" class="info-val">0</span>
-  </div>
-  <div class="game-info">
-    <span class="info-label">SPEED</span>
-    <span id="speedDisplay" class="info-val">1.0x</span>
-  </div>
-  <div class="top-title">⚡ DOGGED SLOPE</div>
-</header>
-
-<nav class="mobile-nav">
-  <button class="mob-btn active" data-panel="game">🎮 Game</button>
-  <button class="mob-btn" data-panel="settings">⚙️ Info</button>
-  <button class="mob-btn" data-panel="leaderboard">🏆 Board</button>
-</nav>
-
-<div class="layout">
-  <aside class="panel panel-left" id="settingsPanel">
-    <h2 class="panel-title">HOW TO PLAY</h2>
-    <div class="info-box">
-      <p>Steer left and right down the endless slope.</p>
-      <p>Avoid the <strong class="danger">red blockers</strong> and do not fall off the edge.</p>
-      <p>Your score increases by distance and speed.</p>
-      <p>The run gets faster over time.</p>
-    </div>
-
-    <h2 class="panel-title">CONTROLS</h2>
-    <div class="controls-grid">
-      <div class="key-row"><kbd>←</kbd> / <kbd>A</kbd> - Move Left</div>
-      <div class="key-row"><kbd>→</kbd> / <kbd>D</kbd> - Move Right</div>
-      <div class="key-row"><kbd>Space</kbd> - Pause</div>
-      <div class="key-row"><kbd>R</kbd> - Restart</div>
-    </div>
-
-    <h2 class="panel-title">SESSION STATS</h2>
-    <div class="stats-block">
-      <div class="stat-row"><span>Runs</span><span id="statRuns">0</span></div>
-      <div class="stat-row"><span>Best Run</span><span id="statBest">0</span></div>
-      <div class="stat-row"><span>Near Misses</span><span id="statNear">0</span></div>
-    </div>
-  </aside>
-
-  <main class="game-center" id="gamePanel">
-    <div class="canvas-wrap" id="canvasWrap">
-      <canvas id="gameCanvas" width="960" height="540"></canvas>
-
-      <div class="overlay" id="startOverlay">
-        <div class="overlay-box">
-          <h2>⚡ DOGGED SLOPE</h2>
-          <p>Thread the blockers. Keep the pace.</p>
-          <button class="btn-play" id="startBtn">START RUN</button>
-        </div>
-      </div>
-
-      <div class="overlay hidden" id="gameOverOverlay">
-        <div class="overlay-box">
-          <h2>💥 CRASHED</h2>
-          <p>Score: <span id="finalScore" class="score-big">0</span></p>
-          <div id="submitSection">
-            <input type="text" id="playerName" maxlength="20" placeholder="Your name..." class="name-input" autocomplete="off">
-            <button class="btn-submit" id="submitBtn">SUBMIT SCORE</button>
-            <div id="submitStatus" class="submit-status"></div>
+  <main class="wrap">
+    <section class="panel">
+      <header class="hud">
+        <div class="title">Slope Runner</div>
+        <div class="stats">
+          <div class="chip">
+            <span class="k">Score</span>
+            <span class="v" id="scoreText">0</span>
           </div>
-          <button class="btn-play" id="retryBtn">RUN AGAIN</button>
+          <div class="chip">
+            <span class="k">Best</span>
+            <span class="v" id="bestText">0</span>
+          </div>
+          <button class="btn" id="restartBtn" type="button">Restart</button>
+        </div>
+      </header>
+
+      <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="1280" height="720" aria-label="Slope game canvas"></canvas>
+
+        <div class="overlay show" id="startOverlay">
+          <div class="overlay-card">
+            <h2>Dogged Slope</h2>
+            <p>Press Space to start.<br>Use Arrow Keys or A/D to steer and survive.</p>
+          </div>
+        </div>
+
+        <div class="overlay" id="gameOverOverlay">
+          <div class="overlay-card">
+            <h2>Game Over</h2>
+            <p>Final Score: <strong id="finalScore">0</strong></p>
+            <button class="btn" id="playAgainBtn" type="button">Play Again</button>
+          </div>
         </div>
       </div>
 
-      <div class="overlay hidden" id="pauseOverlay">
-        <div class="overlay-box">
-          <h2>⏸ PAUSED</h2>
-          <p>Press <kbd>Space</kbd> to resume</p>
-        </div>
+      <div class="touch-row" aria-label="Mobile controls">
+        <button class="touch-btn" id="touchLeft" type="button">Hold Left</button>
+        <button class="touch-btn" id="touchRight" type="button">Hold Right</button>
       </div>
-    </div>
+    </section>
 
-    <div class="touch-controls">
-      <button class="touch-btn" data-dir="left">◀</button>
-      <button class="touch-btn" data-dir="right">▶</button>
-    </div>
+    <section class="panel leaderboard">
+      <h3>Top 5 Scores - Slope</h3>
+      <ol class="lb-list" id="leaderboardList"></ol>
+      <p class="lb-empty" id="leaderboardEmpty">No scores yet. Be the first.</p>
+    </section>
   </main>
 
-  <aside class="panel panel-right" id="leaderboardPanel">
-    <h2 class="panel-title">
-      🏆 LEADERBOARD
-      <button class="refresh-btn" id="refreshLb" title="Refresh">↻</button>
-    </h2>
-    <ol class="lb-list" id="leaderboardList">
-      <li class="lb-empty">Loading...</li>
-    </ol>
-  </aside>
-</div>
+  <script>
+    (() => {
+      'use strict';
 
-<script src="slope.js"></script>
+      // ============================================================
+      // Shared local leaderboard compatibility
+      // ============================================================
+      if (typeof window.saveScore !== 'function') {
+        window.saveScore = function saveScore(gameName, score) {
+          const key = 'dogged-local-leaderboards';
+          let db = {};
+          try {
+            db = JSON.parse(localStorage.getItem(key) || '{}') || {};
+          } catch {
+            db = {};
+          }
+
+          if (!db[gameName]) db[gameName] = [];
+
+          let username = (localStorage.getItem('dogged-player-name') || '').trim();
+          if (!username) {
+            username = (window.prompt('Enter your username:', '') || '').trim();
+            if (!username) username = 'Anonymous';
+            username = username.slice(0, 20).replace(/[<>]/g, '');
+            localStorage.setItem('dogged-player-name', username);
+          }
+
+          db[gameName].push({ name: username, score: Number(score) || 0, ts: Date.now() });
+          db[gameName].sort((a, b) => b.score - a.score);
+          db[gameName] = db[gameName].slice(0, 50);
+          localStorage.setItem(key, JSON.stringify(db));
+          return db[gameName];
+        };
+      }
+
+      function readScores(gameName, limit = 5) {
+        const key = 'dogged-local-leaderboards';
+        try {
+          const db = JSON.parse(localStorage.getItem(key) || '{}') || {};
+          const rows = Array.isArray(db[gameName]) ? db[gameName] : [];
+          return rows.slice(0, limit);
+        } catch {
+          return [];
+        }
+      }
+
+      // ============================================================
+      // DOM refs
+      // ============================================================
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const scoreText = document.getElementById('scoreText');
+      const bestText = document.getElementById('bestText');
+      const finalScore = document.getElementById('finalScore');
+      const startOverlay = document.getElementById('startOverlay');
+      const gameOverOverlay = document.getElementById('gameOverOverlay');
+      const restartBtn = document.getElementById('restartBtn');
+      const playAgainBtn = document.getElementById('playAgainBtn');
+      const lbList = document.getElementById('leaderboardList');
+      const lbEmpty = document.getElementById('leaderboardEmpty');
+      const touchLeft = document.getElementById('touchLeft');
+      const touchRight = document.getElementById('touchRight');
+
+      // ============================================================
+      // Game state
+      // ============================================================
+      const STATE = {
+        started: false,
+        running: false,
+        gameOver: false,
+        score: 0,
+        best: Number(localStorage.getItem('dogged-slope-best-local') || 0),
+        lastSavedScore: -1,
+
+        distance: 0,
+        speed: 24,
+        accel: 2.25,
+        maxSpeed: 82,
+
+        playerX: 0,
+        playerVX: 0,
+        playerRadius: 0.095,
+        steerAccel: 4.6,
+        drag: 0.86,
+
+        trackBaseWidth: 1.2,
+        trackMinWidth: 0.62,
+
+        nextObstacleZ: 24,
+        obstacles: [],
+      };
+
+      const INPUT = {
+        left: false,
+        right: false,
+      };
+
+      let rafId = 0;
+      let lastT = 0;
+      let audioCtx = null;
+
+      // ============================================================
+      // Utility
+      // ============================================================
+      function clamp(v, min, max) {
+        return Math.max(min, Math.min(max, v));
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function playTone(freq, dur, gainAmount) {
+        try {
+          if (!audioCtx) {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!Ctx) return;
+            audioCtx = new Ctx();
+          }
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.value = 0.0001;
+          gain.gain.exponentialRampToValueAtTime(gainAmount, now + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + dur);
+        } catch {
+          // Audio is optional.
+        }
+      }
+
+      function roadCenterAt(z) {
+        return Math.sin(z * 0.055) * 0.42 + Math.sin(z * 0.021 + 0.8) * 0.23;
+      }
+
+      function roadWidthAt(z) {
+        const shrink = Math.min(STATE.trackBaseWidth - STATE.trackMinWidth, z * 0.00022);
+        const wave = Math.sin(z * 0.035) * 0.04;
+        return Math.max(STATE.trackMinWidth, STATE.trackBaseWidth - shrink + wave);
+      }
+
+      // ============================================================
+      // Leaderboard
+      // ============================================================
+      function renderLeaderboard() {
+        const rows = readScores('Slope', 5);
+        lbList.innerHTML = '';
+
+        if (!rows.length) {
+          lbEmpty.style.display = 'block';
+          return;
+        }
+
+        lbEmpty.style.display = 'none';
+        rows.forEach((entry, i) => {
+          const li = document.createElement('li');
+          li.className = 'lb-item';
+          li.innerHTML =
+            `<span class="lb-rank">${i + 1}</span>` +
+            `<span class="lb-name">${escapeHtml(entry.name || 'Anonymous')}</span>` +
+            `<span class="lb-score">${Math.floor(entry.score || 0)}</span>`;
+          lbList.appendChild(li);
+        });
+      }
+
+      function saveRunScore() {
+        const scoreToSave = Math.floor(STATE.score);
+        if (scoreToSave <= STATE.lastSavedScore) return;
+        STATE.lastSavedScore = scoreToSave;
+        window.saveScore('Slope', scoreToSave);
+        renderLeaderboard();
+      }
+
+      // ============================================================
+      // Game setup / reset
+      // ============================================================
+      function resetGame() {
+        STATE.started = true;
+        STATE.running = true;
+        STATE.gameOver = false;
+        STATE.score = 0;
+        STATE.lastSavedScore = -1;
+
+        STATE.distance = 0;
+        STATE.speed = 24;
+        STATE.playerX = 0;
+        STATE.playerVX = 0;
+        STATE.nextObstacleZ = 24;
+        STATE.obstacles = [];
+
+        scoreText.textContent = '0';
+        finalScore.textContent = '0';
+        startOverlay.classList.remove('show');
+        gameOverOverlay.classList.remove('show');
+      }
+
+      function endGame(reason) {
+        if (STATE.gameOver) return;
+
+        STATE.running = false;
+        STATE.gameOver = true;
+        finalScore.textContent = String(Math.floor(STATE.score));
+        gameOverOverlay.classList.add('show');
+        saveRunScore();
+
+        if (reason === 'obstacle') playTone(160, 0.2, 0.07);
+        else playTone(130, 0.24, 0.07);
+      }
+
+      function spawnObstacleAt(z) {
+        const width = roadWidthAt(z);
+        const center = roadCenterAt(z);
+        const pad = 0.16;
+        const x = center + (Math.random() * 2 - 1) * Math.max(0.08, width - pad);
+
+        STATE.obstacles.push({
+          z,
+          x,
+          r: lerp(0.065, 0.115, Math.random()),
+        });
+      }
+
+      function updateObstacleStream() {
+        const densityFactor = clamp((STATE.speed - 24) / 58, 0, 1);
+        const drawAhead = 130;
+
+        while (STATE.nextObstacleZ < STATE.distance + drawAhead) {
+          const gap = lerp(13.4, 6.4, densityFactor) + Math.random() * 2.2;
+          STATE.nextObstacleZ += gap;
+          spawnObstacleAt(STATE.nextObstacleZ);
+
+          if (densityFactor > 0.55 && Math.random() < 0.28) {
+            spawnObstacleAt(STATE.nextObstacleZ + 0.9 + Math.random() * 0.8);
+          }
+        }
+
+        STATE.obstacles = STATE.obstacles.filter((o) => o.z > STATE.distance - 2.5);
+      }
+
+      // ============================================================
+      // Update logic
+      // ============================================================
+      function update(dt) {
+        if (!STATE.running) return;
+
+        const steer = (INPUT.right ? 1 : 0) - (INPUT.left ? 1 : 0);
+        STATE.playerVX += steer * STATE.steerAccel * dt;
+        STATE.playerVX *= Math.pow(STATE.drag, dt * 60);
+        STATE.playerVX = clamp(STATE.playerVX, -2.55, 2.55);
+
+        STATE.playerX += STATE.playerVX * dt;
+        STATE.speed = clamp(STATE.speed + STATE.accel * dt, 24, STATE.maxSpeed);
+        STATE.distance += STATE.speed * dt;
+        STATE.score = STATE.distance * 8.5;
+
+        const playerTrackCenter = roadCenterAt(STATE.distance + 1.7);
+        const playerTrackWidth = roadWidthAt(STATE.distance + 1.7);
+        const edgeLimit = playerTrackWidth - STATE.playerRadius;
+
+        if (Math.abs(STATE.playerX - playerTrackCenter) > edgeLimit) {
+          endGame('edge');
+          return;
+        }
+
+        updateObstacleStream();
+
+        for (const o of STATE.obstacles) {
+          const dz = o.z - (STATE.distance + 1.7);
+          if (dz < -0.3 || dz > 1.3) continue;
+
+          const dx = Math.abs(STATE.playerX - o.x);
+          if (dx < (STATE.playerRadius + o.r * 0.92) && dz < 0.85) {
+            endGame('obstacle');
+            return;
+          }
+        }
+
+        const displayScore = Math.floor(STATE.score);
+        scoreText.textContent = String(displayScore);
+
+        if (displayScore > STATE.best) {
+          STATE.best = displayScore;
+          localStorage.setItem('dogged-slope-best-local', String(STATE.best));
+          bestText.textContent = String(STATE.best);
+        }
+      }
+
+      // ============================================================
+      // Rendering
+      // ============================================================
+      function resizeCanvas() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const rect = canvas.getBoundingClientRect();
+        const w = Math.max(320, Math.floor(rect.width));
+        const h = Math.max(180, Math.floor(rect.height));
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function projectPoint(worldX, worldZ, horizonY, vw, vh, tilt) {
+        const relZ = worldZ - STATE.distance;
+        if (relZ <= 0.1) return null;
+
+        const t = clamp(relZ / 130, 0, 1);
+        const depth = 1 / (0.18 + t * 1.45);
+        const screenX = (vw * 0.5)
+          + (worldX - roadCenterAt(worldZ)) * depth * vw * 0.31
+          + tilt * (1 - t) * 110;
+        const yNorm = 1 - t;
+        const screenY = horizonY + Math.pow(yNorm, 2.08) * (vh - horizonY - 24);
+
+        return { x: screenX, y: screenY, t, depth };
+      }
+
+      function drawBackground(vw, vh) {
+        const grad = ctx.createLinearGradient(0, 0, 0, vh);
+        grad.addColorStop(0, '#0a1a34');
+        grad.addColorStop(0.45, '#081327');
+        grad.addColorStop(1, '#03070f');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, vw, vh);
+
+        for (let i = 0; i < 42; i++) {
+          const x = (i * 151) % vw;
+          const y = (i * 61) % Math.floor(vh * 0.55);
+          const twinkle = 0.2 + 0.8 * Math.abs(Math.sin((STATE.distance * 0.015) + i));
+          ctx.fillStyle = `rgba(145, 192, 255, ${0.08 * twinkle})`;
+          ctx.fillRect(x, y, 2, 2);
+        }
+      }
+
+      function drawTrack(vw, vh) {
+        const horizonY = vh * 0.18;
+        const tilt = clamp(STATE.playerVX * 0.08 + Math.sin(STATE.distance * 0.02) * 0.015, -0.26, 0.26);
+
+        drawBackground(vw, vh);
+
+        for (let i = 110; i >= 2; i--) {
+          const zFar = STATE.distance + i;
+          const zNear = STATE.distance + i - 1;
+          const pFar = projectPoint(0, zFar, horizonY, vw, vh, tilt);
+          const pNear = projectPoint(0, zNear, horizonY, vw, vh, tilt);
+          if (!pFar || !pNear) continue;
+
+          const wFar = roadWidthAt(zFar) * pFar.depth * vw * 0.27;
+          const wNear = roadWidthAt(zNear) * pNear.depth * vw * 0.27;
+
+          const stripe = i % 2 === 0;
+          ctx.fillStyle = stripe ? 'rgba(20, 37, 59, 0.98)' : 'rgba(16, 29, 47, 0.98)';
+          ctx.beginPath();
+          ctx.moveTo(pFar.x - wFar, pFar.y);
+          ctx.lineTo(pFar.x + wFar, pFar.y);
+          ctx.lineTo(pNear.x + wNear, pNear.y);
+          ctx.lineTo(pNear.x - wNear, pNear.y);
+          ctx.closePath();
+          ctx.fill();
+
+          // Neon lane rails.
+          ctx.strokeStyle = 'rgba(79, 216, 255, 0.34)';
+          ctx.lineWidth = Math.max(1, (1 - pFar.t) * 2.6);
+          ctx.beginPath();
+          ctx.moveTo(pFar.x - wFar, pFar.y);
+          ctx.lineTo(pNear.x - wNear, pNear.y);
+          ctx.moveTo(pFar.x + wFar, pFar.y);
+          ctx.lineTo(pNear.x + wNear, pNear.y);
+          ctx.stroke();
+
+          // Center dashes.
+          if (i % 4 === 0) {
+            const dashW = Math.max(2, wNear * 0.03);
+            const dashH = Math.max(2, pNear.y - pFar.y);
+            ctx.fillStyle = 'rgba(114, 255, 182, 0.35)';
+            ctx.fillRect(pNear.x - dashW * 0.5, pNear.y - dashH, dashW, dashH);
+          }
+        }
+
+        // Obstacles.
+        for (const o of STATE.obstacles) {
+          const p = projectPoint(o.x, o.z, horizonY, vw, vh, tilt);
+          if (!p || p.t > 1 || p.t < 0) continue;
+
+          const size = Math.max(6, o.r * p.depth * vw * 0.2);
+          const glow = 0.25 + (1 - p.t) * 0.55;
+
+          ctx.shadowColor = `rgba(255, 93, 134, ${glow})`;
+          ctx.shadowBlur = 14;
+          ctx.fillStyle = '#ff5d86';
+          ctx.fillRect(p.x - size, p.y - size * 1.35, size * 2, size * 1.35);
+          ctx.shadowBlur = 0;
+
+          ctx.fillStyle = 'rgba(255, 206, 220, 0.85)';
+          ctx.fillRect(p.x - size * 0.68, p.y - size * 1.1, size * 1.36, Math.max(2, size * 0.16));
+        }
+
+        // Player ball.
+        const ballZ = STATE.distance + 1.7;
+        const ballP = projectPoint(STATE.playerX, ballZ, horizonY, vw, vh, tilt);
+        if (ballP) {
+          const r = Math.max(8, STATE.playerRadius * ballP.depth * vw * 0.19);
+
+          const g = ctx.createRadialGradient(
+            ballP.x - r * 0.35,
+            ballP.y - r * 0.5,
+            r * 0.2,
+            ballP.x,
+            ballP.y,
+            r
+          );
+          g.addColorStop(0, 'rgba(201, 255, 232, 0.98)');
+          g.addColorStop(0.55, 'rgba(114, 255, 182, 0.96)');
+          g.addColorStop(1, 'rgba(40, 162, 120, 0.95)');
+
+          ctx.shadowColor = 'rgba(114, 255, 182, 0.55)';
+          ctx.shadowBlur = 16;
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(ballP.x, ballP.y - r * 0.2, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          // Contact shadow.
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+          ctx.beginPath();
+          ctx.ellipse(ballP.x, ballP.y + r * 0.7, r * 0.86, r * 0.28, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Speed vignette for intensity.
+        const speedN = clamp((STATE.speed - 24) / (STATE.maxSpeed - 24), 0, 1);
+        if (speedN > 0.05) {
+          const alpha = 0.1 + speedN * 0.18;
+          const vg = ctx.createRadialGradient(vw * 0.5, vh * 0.62, vh * 0.1, vw * 0.5, vh * 0.6, vh * 0.9);
+          vg.addColorStop(0, 'rgba(0,0,0,0)');
+          vg.addColorStop(1, `rgba(0,0,0,${alpha})`);
+          ctx.fillStyle = vg;
+          ctx.fillRect(0, 0, vw, vh);
+        }
+      }
+
+      // ============================================================
+      // Loop
+      // ============================================================
+      function frame(ts) {
+        if (!lastT) lastT = ts;
+        const dt = Math.min(0.033, (ts - lastT) / 1000);
+        lastT = ts;
+
+        update(dt);
+        drawTrack(canvas.clientWidth, canvas.clientHeight);
+        rafId = requestAnimationFrame(frame);
+      }
+
+      // ============================================================
+      // Input
+      // ============================================================
+      function setDirection(left, isDown) {
+        if (left) INPUT.left = isDown;
+        else INPUT.right = isDown;
+      }
+
+      document.addEventListener('keydown', (e) => {
+        const key = e.key;
+        if (key === 'ArrowLeft' || key === 'ArrowRight' || key === ' ' || key === 'a' || key === 'A' || key === 'd' || key === 'D') {
+          e.preventDefault();
+        }
+
+        if ((key === 'ArrowLeft' || key === 'a' || key === 'A')) setDirection(true, true);
+        if ((key === 'ArrowRight' || key === 'd' || key === 'D')) setDirection(false, true);
+
+        if (key === ' ') {
+          if (!STATE.started || STATE.gameOver) {
+            resetGame();
+            playTone(460, 0.07, 0.03);
+          }
+        }
+      }, { passive: false });
+
+      document.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') setDirection(true, false);
+        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') setDirection(false, false);
+      });
+
+      function bindTouchButton(el, left) {
+        const onDown = (ev) => { ev.preventDefault(); setDirection(left, true); };
+        const onUp = () => setDirection(left, false);
+        el.addEventListener('touchstart', onDown, { passive: false });
+        el.addEventListener('touchend', onUp);
+        el.addEventListener('touchcancel', onUp);
+        el.addEventListener('mousedown', onDown);
+        el.addEventListener('mouseup', onUp);
+        el.addEventListener('mouseleave', onUp);
+      }
+
+      bindTouchButton(touchLeft, true);
+      bindTouchButton(touchRight, false);
+
+      // ============================================================
+      // Buttons
+      // ============================================================
+      restartBtn.addEventListener('click', () => {
+        resetGame();
+        playTone(420, 0.07, 0.03);
+      });
+
+      playAgainBtn.addEventListener('click', () => {
+        resetGame();
+        playTone(420, 0.07, 0.03);
+      });
+
+      // ============================================================
+      // Boot
+      // ============================================================
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+      bestText.textContent = String(STATE.best);
+      renderLeaderboard();
+      rafId = requestAnimationFrame(frame);
+
+      window.addEventListener('beforeunload', () => {
+        if (rafId) cancelAnimationFrame(rafId);
+      });
+    })();
+  </script>
 </body>
 </html>
