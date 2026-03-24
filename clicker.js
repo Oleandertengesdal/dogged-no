@@ -261,10 +261,12 @@ const PRESTIGE_UPGRADES = [
   { id: 'p_cheapBuild', name: 'Soul Discount',       icon: '💀🏷️', desc: 'All buildings cost 5% less',                cost: 8,    effect: 'building_discount', value: 0.95 },
   { id: 'p_combo',      name: 'Combo Master',        icon: '🔥',    desc: 'Click combos give 2× bonus',              cost: 12,   effect: 'combo_mult', value: 2 },
   { id: 'p_golden1',    name: 'Lucky Dogged',        icon: '🍀',    desc: 'Golden doggeds appear 50% more often',     cost: 15,   effect: 'golden_freq', value: 1.5 },
+  { id: 'p_bebuild1',   name: 'Dogged Foundations',   icon: '🏛️',    desc: 'All buildings produce 25% more',          cost: 10,   effect: 'building_efficiency', value: 1.25 },
 
   // --- Mid tier (requires 5-10 ascensions) ---
   { id: 'p_click2',     name: 'Ghost Click',         icon: '👻👆', desc: 'Start with ×3 click power after ascension',  cost: 25,   effect: 'start_click_mult', value: 3 },
   { id: 'p_cheapBuild2',name: 'Deep Discount',       icon: '💀💰', desc: 'All buildings cost 10% less',               cost: 35,   effect: 'building_discount', value: 0.90 },
+  { id: 'p_bebuild2',   name: 'Soul Engineering',    icon: '⚙️💀', desc: 'All buildings produce 50% more',          cost: 55,   effect: 'building_efficiency', value: 1.5 },
   { id: 'p_golden2',    name: 'Golden Magnet',       icon: '🧲',    desc: 'Golden doggeds give 2× reward',            cost: 30,   effect: 'golden_mult', value: 2 },
   { id: 'p_golden3',    name: 'Golden Age',          icon: '👑',    desc: 'Golden doggeds last 2× longer',            cost: 25,   effect: 'golden_duration', value: 2 },
   { id: 'p_crit',       name: 'Critical Dogged',     icon: '💥',    desc: '5% chance for 10× click',                  cost: 40,   effect: 'crit_chance', value: 0.05 },
@@ -280,6 +282,7 @@ const PRESTIGE_UPGRADES = [
   // --- Endgame tier (requires many ascensions or high realm runs) ---
   { id: 'p_soul_boost2',name: 'Supreme Harvester',   icon: '🔥💀',  desc: 'Earn 50% more souls on ascension',        cost: 200,  effect: 'soul_bonus', value: 1.5 },
   { id: 'p_click3',     name: 'Phantom Touch',       icon: '👻✨', desc: 'Start with ×5 click power after ascension',  cost: 150, effect: 'start_click_mult', value: 5 },
+  { id: 'p_bebuild3',   name: 'Eternal Infrastructure', icon: '🏗️✨', desc: 'All buildings produce 100% more',       cost: 180,  effect: 'building_efficiency', value: 2 },
   { id: 'p_golden4',    name: 'Golden God',          icon: '🌟🧲', desc: 'Golden doggeds give 3× reward & appear 2× more', cost: 180, effect: 'golden_mult', value: 3 },
   { id: 'p_combo2',     name: 'Combo Legend',        icon: '🔥🔥', desc: 'Click combos give 3× bonus',              cost: 160,  effect: 'combo_mult', value: 3 },
   { id: 'p_offline3',   name: 'Eternal Dreamer',     icon: '💫',    desc: 'Earn 100% production while offline',       cost: 300,  effect: 'offline_mult', value: 1.0 },
@@ -600,6 +603,7 @@ function isRealmUnlocked(realm) {
 // ===== PRESTIGE HELPERS =====
 function getPrestigeEffect(effectType) {
   let value = effectType === 'building_discount' ? 1 :
+              effectType === 'building_efficiency' ? 1 :
               effectType === 'soul_bonus' ? 1 :
               effectType === 'golden_freq' ? 1 :
               effectType === 'golden_mult' ? 1 :
@@ -614,6 +618,7 @@ function getPrestigeEffect(effectType) {
   for (const pu of PRESTIGE_UPGRADES) {
     if (game.prestigeUpgrades[pu.id] && pu.effect === effectType) {
       if (effectType === 'building_discount') value *= pu.value;
+      else if (effectType === 'building_efficiency') value *= pu.value;
       else if (effectType === 'soul_bonus') value *= pu.value;
       else if (effectType === 'crit_chance') value = Math.max(value, pu.value);
       else if (effectType === 'offline_mult') value = Math.max(value, pu.value);
@@ -725,6 +730,9 @@ function recalculateDps() {
 
   // Soul boost
   globalMult *= getSoulBoostMultiplier();
+
+  // Permanent building efficiency from ascension upgrades
+  globalMult *= getPrestigeEffect('building_efficiency');
 
   // Realm DPS multiplier
   globalMult *= getRealmDpsMult();
@@ -1435,9 +1443,10 @@ function renderProductionBreakdown() {
     if (u.type === 'global_mult' && game.upgrades[u.id]) globalMult *= u.value;
   }
   const soulBoost = getSoulBoostMultiplier();
+  const buildingEfficiency = getPrestigeEffect('building_efficiency');
   const realmMult = getRealmDpsMult();
   const eventMult = game._eventDpsMult || 1;
-  const totalGlobal = globalMult * soulBoost * realmMult * eventMult;
+  const totalGlobal = globalMult * soulBoost * buildingEfficiency * realmMult * eventMult;
 
   let totalRawDps = 0;
   for (const b of BUILDINGS) {
@@ -1468,7 +1477,10 @@ function renderProductionBreakdown() {
     DOM.prodEventMult.textContent = '×' + eventMult.toFixed(1);
     DOM.prodEventMult.style.color = eventMult > 1 ? '#4caf50' : '';
   }
-  if (DOM.prodGlobalMult) DOM.prodGlobalMult.textContent = '×' + globalMult.toFixed(2);
+  if (DOM.prodGlobalMult) {
+    const displayedGlobal = globalMult * buildingEfficiency;
+    DOM.prodGlobalMult.textContent = '×' + displayedGlobal.toFixed(2);
+  }
   if (DOM.prodClickPower) DOM.prodClickPower.textContent = formatNumber(getClickValue().value);
   if (DOM.prodEfficiency) {
     const totalBuildingCost = BUILDINGS.reduce((sum, b) => {
