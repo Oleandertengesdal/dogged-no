@@ -1,768 +1,105 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dogged Flappy Bird</title>
-  <style>
-    :root {
-      --bg: #08101f;
-      --panel: #0f1a31;
-      --panel-border: rgba(111, 172, 255, 0.26);
-      --text: #e6efff;
-      --muted: #99aeda;
-      --accent: #6dceff;
-      --bird: #ffd15a;
-      --pipe: #43d992;
-      --pipe-dark: #2ea46f;
-      --danger: #ff6f8f;
-      --btn: #2d4e88;
-      --btn-hover: #3a63a6;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(circle at 15% 10%, rgba(109, 206, 255, 0.14), transparent 35%),
-        radial-gradient(circle at 85% 0%, rgba(74, 121, 255, 0.16), transparent 32%),
-        linear-gradient(180deg, #090f1d 0%, #050912 100%);
-      padding: 24px 12px;
-      display: grid;
-      place-items: center;
-    }
-
-    .shell {
-      width: min(920px, 100%);
-      display: grid;
-      gap: 18px;
-    }
-
-    .panel {
-      border-radius: 16px;
-      border: 1px solid var(--panel-border);
-      background: linear-gradient(180deg, rgba(16, 27, 50, 0.96), rgba(10, 18, 36, 0.95));
-      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.35);
-      overflow: hidden;
-    }
-
-    .hud {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 12px 14px;
-      border-bottom: 1px solid rgba(111, 172, 255, 0.2);
-      flex-wrap: wrap;
-    }
-
-    .title {
-      font-weight: 800;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: #c6edff;
-    }
-
-    .hud-right {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .chip {
-      min-width: 98px;
-      border-radius: 10px;
-      border: 1px solid rgba(67, 217, 146, 0.28);
-      background: rgba(22, 42, 68, 0.88);
-      text-align: center;
-      padding: 6px 10px;
-    }
-
-    .chip .k {
-      display: block;
-      text-transform: uppercase;
-      font-size: 0.67rem;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-      margin-bottom: 2px;
-    }
-
-    .chip .v {
-      font-weight: 800;
-      color: var(--accent);
-      font-variant-numeric: tabular-nums;
-    }
-
-    button {
-      border: 0;
-      border-radius: 10px;
-      padding: 8px 12px;
-      background: var(--btn);
-      color: #edf3ff;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background 0.15s ease;
-    }
-
-    button:hover { background: var(--btn-hover); }
-
-    .canvas-wrap {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      background: #070f1d;
-    }
-
-    canvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
-    .overlay {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      text-align: center;
-      padding: 14px;
-      background: rgba(8, 14, 28, 0.62);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.18s ease;
-    }
-
-    .overlay.show {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .overlay-card {
-      width: min(340px, 100%);
-      border-radius: 14px;
-      border: 1px solid rgba(111, 172, 255, 0.3);
-      background: rgba(11, 22, 41, 0.95);
-      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4);
-      padding: 18px 16px;
-    }
-
-    .overlay h2 {
-      margin: 0 0 8px;
-      color: #cbf2ff;
-      font-size: 1.75rem;
-    }
-
-    .overlay p {
-      margin: 0 0 12px;
-      color: #abc0e8;
-      line-height: 1.42;
-    }
-
-    .leaderboard {
-      padding: 14px;
-    }
-
-    .leaderboard h3 {
-      margin: 0 0 10px;
-      color: #cadbfd;
-      font-size: 1.03rem;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
-
-    .lb-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      display: grid;
-      gap: 6px;
-    }
-
-    .lb-item {
-      display: grid;
-      grid-template-columns: 32px 1fr auto;
-      gap: 8px;
-      align-items: center;
-      border-radius: 10px;
-      border: 1px solid rgba(111, 172, 255, 0.2);
-      background: rgba(14, 27, 50, 0.85);
-      padding: 7px 10px;
-      font-size: 0.95rem;
-    }
-
-    .lb-rank { text-align: center; font-weight: 800; color: #8eb2ef; }
-    .lb-name {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: #d9e8ff;
-      font-weight: 600;
-    }
-    .lb-score {
-      font-weight: 800;
-      color: #8ff8bf;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .lb-empty {
-      margin: 0;
-      color: #8ea8d8;
-      font-size: 0.93rem;
-    }
-
-    @media (max-width: 620px) {
-      .chip { min-width: 88px; }
-      .title { font-size: 0.95rem; }
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flappy Flight - Dogged</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="flappy.css" />
 </head>
 <body>
-  <main class="shell">
-    <section class="panel">
-      <header class="hud">
-        <div class="title">Flappy Bird</div>
-        <div class="hud-right">
-          <div class="chip">
-            <span class="k">Score</span>
-            <span class="v" id="scoreText">0</span>
+  <header class="top-bar">
+    <a href="games.html" class="back-link">&larr; Game Center</a>
+    <div class="game-info">
+      <span class="info-label">Score</span>
+      <span class="info-val" id="scoreDisplay">0</span>
+    </div>
+    <div class="game-info">
+      <span class="info-label">Best</span>
+      <span class="info-val" id="bestDisplay">0</span>
+    </div>
+    <div class="game-info">
+      <span class="info-label">Pipes</span>
+      <span class="info-val" id="pipesDisplay">0</span>
+    </div>
+    <div class="top-title">Flappy Flight</div>
+  </header>
+
+  <div class="mobile-nav" id="mobileNav">
+    <button class="mob-btn active" data-panel="game">Game</button>
+    <button class="mob-btn" data-panel="left">How To</button>
+    <button class="mob-btn" data-panel="right">Leaderboard</button>
+  </div>
+
+  <main class="layout">
+    <aside class="panel panel-left show" id="leftPanel">
+      <h2 class="panel-title">How To Fly</h2>
+      <div class="info-box">
+        <p>Stay airborne, thread every pipe, and climb as high as you can.</p>
+        <p>Momentum ramps up over time, so long runs demand tighter rhythm.</p>
+      </div>
+
+      <div class="controls-grid">
+        <div class="key-row"><kbd>Space</kbd> Flap / Start</div>
+        <div class="key-row"><kbd>Tap</kbd> Flap on mobile</div>
+        <div class="key-row"><kbd>P</kbd> Pause / Resume</div>
+      </div>
+
+      <div class="stats-block">
+        <div class="stat-row"><span>Survival</span><span id="survivalStat">0.0s</span></div>
+        <div class="stat-row"><span>Current speed</span><span id="speedStat">0</span></div>
+        <div class="stat-row"><span>Gap size</span><span id="gapStat">0</span></div>
+      </div>
+    </aside>
+
+    <section class="game-center" id="gameCenter">
+      <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="960" height="540" aria-label="Flappy game canvas"></canvas>
+
+        <div class="overlay" id="startOverlay">
+          <div class="overlay-box">
+            <h2>Flappy Flight</h2>
+            <p>Tap or press space to flap through the gate line.</p>
+            <button class="btn-play" id="startBtn">Start Flight</button>
           </div>
-          <div class="chip">
-            <span class="k">Best</span>
-            <span class="v" id="bestText">0</span>
-          </div>
-          <button id="restartBtn" type="button">Restart</button>
         </div>
-      </header>
 
-      <div class="canvas-wrap" id="canvasWrap">
-        <canvas id="gameCanvas" width="1280" height="720" aria-label="Flappy game canvas"></canvas>
-
-        <div class="overlay show" id="startOverlay">
-          <div class="overlay-card">
-            <h2>Flappy Bird</h2>
-            <p>Press Space or click to flap.<br>Press Space to Start.</p>
+        <div class="overlay hidden" id="pauseOverlay">
+          <div class="overlay-box">
+            <h2>Paused</h2>
+            <p>Press <kbd>P</kbd> to continue.</p>
           </div>
         </div>
 
-        <div class="overlay" id="gameOverOverlay">
-          <div class="overlay-card">
-            <h2>Game Over</h2>
-            <p>Final Score: <strong id="finalScore">0</strong></p>
-            <button id="playAgainBtn" type="button">Play Again</button>
+        <div class="overlay hidden" id="gameOverOverlay">
+          <div class="overlay-box">
+            <h2>Flight Over</h2>
+            <p>Score</p>
+            <div class="score-big" id="finalScore">0</div>
+            <p id="newBestTag" class="hidden" style="color:#62ccff;margin-top:.6rem;">New Personal Best!</p>
+
+            <div id="submitWrap" style="margin-top:1rem;">
+              <input id="nameInput" class="name-input" type="text" maxlength="12" placeholder="Enter name" autocomplete="off" />
+              <button id="submitBtn" class="btn-submit">Save Score</button>
+              <div id="submitStatus" class="submit-status"></div>
+            </div>
+
+            <button class="btn-play" id="restartBtn" style="margin-top:1rem;">Fly Again</button>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="panel leaderboard">
-      <h3>Top 5 Scores - Flappy Bird</h3>
-      <ol class="lb-list" id="leaderboardList"></ol>
-      <p class="lb-empty" id="leaderboardEmpty">No scores yet. Be the first.</p>
-    </section>
+    <aside class="panel panel-right" id="rightPanel">
+      <h2 class="panel-title">Top Pilots <button class="refresh-btn" id="refreshLb" title="Refresh">&#8635;</button></h2>
+      <ol class="lb-list" id="leaderboardList">
+        <li class="lb-empty">Loading leaderboard...</li>
+      </ol>
+    </aside>
   </main>
 
-  <script>
-    (() => {
-      'use strict';
-
-      // =========================================================
-      // Shared leaderboard helper (compatible fallback)
-      // =========================================================
-      if (typeof window.saveScore !== 'function') {
-        window.saveScore = function saveScore(gameName, score) {
-          const key = 'dogged-local-leaderboards';
-          let db = {};
-          try {
-            db = JSON.parse(localStorage.getItem(key) || '{}') || {};
-          } catch {
-            db = {};
-          }
-
-          if (!db[gameName]) db[gameName] = [];
-
-          let username = (localStorage.getItem('dogged-player-name') || '').trim();
-          if (!username) {
-            username = (window.prompt('Enter your username:', '') || '').trim();
-            if (!username) username = 'Anonymous';
-            username = username.slice(0, 20).replace(/[<>]/g, '');
-            localStorage.setItem('dogged-player-name', username);
-          }
-
-          db[gameName].push({ name: username, score: Number(score) || 0, ts: Date.now() });
-          db[gameName].sort((a, b) => b.score - a.score);
-          db[gameName] = db[gameName].slice(0, 50);
-
-          localStorage.setItem(key, JSON.stringify(db));
-          return db[gameName];
-        };
-      }
-
-      function readTopScores(gameName, limit = 5) {
-        const key = 'dogged-local-leaderboards';
-        try {
-          const db = JSON.parse(localStorage.getItem(key) || '{}') || {};
-          const rows = Array.isArray(db[gameName]) ? db[gameName] : [];
-          return rows.slice(0, limit);
-        } catch {
-          return [];
-        }
-      }
-
-      function escapeHtml(text) {
-        return String(text)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#39;');
-      }
-
-      // =========================================================
-      // DOM refs
-      // =========================================================
-      const canvas = document.getElementById('gameCanvas');
-      const ctx = canvas.getContext('2d');
-      const scoreText = document.getElementById('scoreText');
-      const bestText = document.getElementById('bestText');
-      const finalScoreText = document.getElementById('finalScore');
-      const startOverlay = document.getElementById('startOverlay');
-      const gameOverOverlay = document.getElementById('gameOverOverlay');
-      const restartBtn = document.getElementById('restartBtn');
-      const playAgainBtn = document.getElementById('playAgainBtn');
-      const canvasWrap = document.getElementById('canvasWrap');
-      const leaderboardList = document.getElementById('leaderboardList');
-      const leaderboardEmpty = document.getElementById('leaderboardEmpty');
-
-      // =========================================================
-      // Physics + game state
-      // =========================================================
-      const G = {
-        started: false,
-        running: false,
-        gameOver: false,
-        score: 0,
-        best: Number(localStorage.getItem('dogged-flappy-best') || 0),
-        lastSavedScore: -1,
-
-        gravity: 1700,
-        flapBoost: -500,
-        pipeSpeed: 260,
-        pipeSpeedMax: 470,
-        pipeAccel: 8,
-        spawnTimer: 0,
-        spawnEvery: 1.35,
-        gapSize: 220,
-        gapMin: 150,
-
-        groundHeight: 96,
-        skyTime: 0,
-      };
-
-      const bird = {
-        x: 220,
-        y: 310,
-        r: 20,
-        vy: 0,
-        rot: 0,
-      };
-
-      let pipes = [];
-      let rafId = 0;
-      let lastTs = 0;
-      let audioCtx = null;
-
-      // =========================================================
-      // Sound effects (optional)
-      // =========================================================
-      function beep(freq, duration, gainAmount, type = 'triangle') {
-        try {
-          if (!audioCtx) {
-            const Ctx = window.AudioContext || window.webkitAudioContext;
-            if (!Ctx) return;
-            audioCtx = new Ctx();
-          }
-          const now = audioCtx.currentTime;
-          const osc = audioCtx.createOscillator();
-          const gain = audioCtx.createGain();
-
-          osc.type = type;
-          osc.frequency.value = freq;
-          gain.gain.value = 0.0001;
-          gain.gain.exponentialRampToValueAtTime(gainAmount, now + 0.01);
-          gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-          osc.connect(gain);
-          gain.connect(audioCtx.destination);
-          osc.start(now);
-          osc.stop(now + duration);
-        } catch {
-          // Audio is optional.
-        }
-      }
-
-      // =========================================================
-      // Leaderboard rendering
-      // =========================================================
-      function renderLeaderboard() {
-        const rows = readTopScores('Flappy Bird', 5);
-        leaderboardList.innerHTML = '';
-
-        if (!rows.length) {
-          leaderboardEmpty.style.display = 'block';
-          return;
-        }
-
-        leaderboardEmpty.style.display = 'none';
-        rows.forEach((entry, i) => {
-          const li = document.createElement('li');
-          li.className = 'lb-item';
-          li.innerHTML =
-            `<span class="lb-rank">${i + 1}</span>` +
-            `<span class="lb-name">${escapeHtml(entry.name || 'Anonymous')}</span>` +
-            `<span class="lb-score">${Math.floor(entry.score || 0)}</span>`;
-          leaderboardList.appendChild(li);
-        });
-      }
-
-      function saveRunScore() {
-        const s = Math.floor(G.score);
-        if (s <= G.lastSavedScore) return;
-        G.lastSavedScore = s;
-        window.saveScore('Flappy Bird', s);
-        renderLeaderboard();
-      }
-
-      // =========================================================
-      // Reset/start/flap controls
-      // =========================================================
-      function resetGame(startNow) {
-        G.started = startNow;
-        G.running = startNow;
-        G.gameOver = false;
-        G.score = 0;
-        G.lastSavedScore = -1;
-
-        G.pipeSpeed = 260;
-        G.spawnEvery = 1.35;
-        G.gapSize = 220;
-        G.spawnTimer = 0;
-
-        bird.y = Math.min(canvas.clientHeight * 0.45, 320);
-        bird.vy = 0;
-        bird.rot = 0;
-
-        pipes = [];
-        scoreText.textContent = '0';
-
-        startOverlay.classList.toggle('show', !startNow);
-        gameOverOverlay.classList.remove('show');
-      }
-
-      function flap() {
-        if (G.gameOver) return;
-        if (!G.started) {
-          resetGame(true);
-        }
-        bird.vy = G.flapBoost;
-        bird.rot = -0.42;
-        beep(760, 0.06, 0.03, 'sine');
-      }
-
-      function endGame() {
-        if (G.gameOver) return;
-        G.running = false;
-        G.gameOver = true;
-        finalScoreText.textContent = String(Math.floor(G.score));
-        gameOverOverlay.classList.add('show');
-        saveRunScore();
-        beep(170, 0.22, 0.07, 'triangle');
-      }
-
-      // =========================================================
-      // Pipe generation + collisions
-      // =========================================================
-      function spawnPipe() {
-        const h = canvas.clientHeight;
-        const topPad = 54;
-        const bottomLimit = h - G.groundHeight - 54;
-        const minY = topPad + (G.gapSize * 0.5);
-        const maxY = bottomLimit - (G.gapSize * 0.5);
-        const gapCenter = minY + Math.random() * Math.max(20, (maxY - minY));
-
-        pipes.push({
-          x: canvas.clientWidth + 64,
-          w: 90,
-          gapCenter,
-          passed: false,
-        });
-      }
-
-      function circleRectCollide(cx, cy, cr, rx, ry, rw, rh) {
-        const nearestX = Math.max(rx, Math.min(cx, rx + rw));
-        const nearestY = Math.max(ry, Math.min(cy, ry + rh));
-        const dx = cx - nearestX;
-        const dy = cy - nearestY;
-        return (dx * dx + dy * dy) <= (cr * cr);
-      }
-
-      function updatePipes(dt) {
-        G.spawnTimer += dt;
-        if (G.spawnTimer >= G.spawnEvery) {
-          G.spawnTimer = 0;
-          spawnPipe();
-        }
-
-        for (const p of pipes) {
-          p.x -= G.pipeSpeed * dt;
-
-          const topH = p.gapCenter - G.gapSize * 0.5;
-          const bottomY = p.gapCenter + G.gapSize * 0.5;
-          const bottomH = (canvas.clientHeight - G.groundHeight) - bottomY;
-
-          const hitTop = circleRectCollide(bird.x, bird.y, bird.r, p.x, 0, p.w, topH);
-          const hitBottom = circleRectCollide(bird.x, bird.y, bird.r, p.x, bottomY, p.w, bottomH);
-          if (hitTop || hitBottom) {
-            endGame();
-          }
-
-          if (!p.passed && (p.x + p.w) < bird.x) {
-            p.passed = true;
-            G.score += 1;
-            scoreText.textContent = String(G.score);
-            beep(980, 0.045, 0.03, 'square');
-          }
-        }
-
-        pipes = pipes.filter((p) => p.x + p.w > -120);
-      }
-
-      // =========================================================
-      // Physics update
-      // =========================================================
-      function update(dt) {
-        G.skyTime += dt;
-        if (!G.running) return;
-
-        // Difficulty ramps up over time for addictive pacing.
-        G.pipeSpeed = Math.min(G.pipeSpeedMax, G.pipeSpeed + G.pipeAccel * dt);
-        G.spawnEvery = Math.max(0.9, G.spawnEvery - 0.01 * dt);
-        G.gapSize = Math.max(G.gapMin, G.gapSize - 2.2 * dt);
-
-        bird.vy += G.gravity * dt;
-        bird.y += bird.vy * dt;
-        bird.rot = Math.max(-0.45, Math.min(1.22, bird.rot + 2.4 * dt + bird.vy / 1800));
-
-        updatePipes(dt);
-
-        if (bird.y - bird.r <= 0) {
-          bird.y = bird.r;
-          endGame();
-        }
-
-        const floorY = canvas.clientHeight - G.groundHeight;
-        if (bird.y + bird.r >= floorY) {
-          bird.y = floorY - bird.r;
-          endGame();
-        }
-
-        if (G.score > G.best) {
-          G.best = G.score;
-          localStorage.setItem('dogged-flappy-best', String(G.best));
-          bestText.textContent = String(G.best);
-        }
-      }
-
-      // =========================================================
-      // Rendering
-      // =========================================================
-      function resizeCanvas() {
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const rect = canvas.getBoundingClientRect();
-        const w = Math.max(320, Math.floor(rect.width));
-        const h = Math.max(180, Math.floor(rect.height));
-        canvas.width = Math.floor(w * dpr);
-        canvas.height = Math.floor(h * dpr);
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      }
-
-      function drawBackground() {
-        const w = canvas.clientWidth;
-        const h = canvas.clientHeight;
-
-        const grad = ctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, '#122949');
-        grad.addColorStop(0.6, '#0e213c');
-        grad.addColorStop(1, '#0b1a2e');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, w, h);
-
-        // Parallax clouds for movement feel.
-        const cloudOffset = (G.skyTime * 28) % (w + 180);
-        ctx.fillStyle = 'rgba(175, 220, 255, 0.12)';
-        for (let i = 0; i < 6; i++) {
-          const x = ((i * 220 - cloudOffset) % (w + 220)) - 110;
-          const y = 70 + (i % 3) * 42;
-          ctx.beginPath();
-          ctx.ellipse(x, y, 46, 16, 0, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-
-      function drawPipes() {
-        const h = canvas.clientHeight;
-        for (const p of pipes) {
-          const topH = p.gapCenter - G.gapSize * 0.5;
-          const bottomY = p.gapCenter + G.gapSize * 0.5;
-          const floorY = h - G.groundHeight;
-          const bottomH = floorY - bottomY;
-
-          // Pipe bodies
-          ctx.fillStyle = 'rgba(67, 217, 146, 0.95)';
-          ctx.fillRect(p.x, 0, p.w, topH);
-          ctx.fillRect(p.x, bottomY, p.w, bottomH);
-
-          // Pipe rims
-          ctx.fillStyle = 'rgba(46, 164, 111, 0.96)';
-          ctx.fillRect(p.x - 6, topH - 20, p.w + 12, 20);
-          ctx.fillRect(p.x - 6, bottomY, p.w + 12, 20);
-
-          // Highlights
-          ctx.fillStyle = 'rgba(174, 255, 212, 0.28)';
-          ctx.fillRect(p.x + 8, 0, 9, topH);
-          ctx.fillRect(p.x + 8, bottomY, 9, bottomH);
-        }
-      }
-
-      function drawBird() {
-        ctx.save();
-        ctx.translate(bird.x, bird.y);
-        ctx.rotate(bird.rot);
-
-        const bodyGrad = ctx.createRadialGradient(-6, -8, 5, 0, 0, 30);
-        bodyGrad.addColorStop(0, '#ffe58c');
-        bodyGrad.addColorStop(0.55, '#ffd15a');
-        bodyGrad.addColorStop(1, '#e0a93d');
-
-        ctx.fillStyle = bodyGrad;
-        ctx.beginPath();
-        ctx.arc(0, 0, bird.r, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#ffb347';
-        ctx.beginPath();
-        ctx.moveTo(10, -2);
-        ctx.lineTo(26, 2);
-        ctx.lineTo(10, 8);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(-5, -6, 6, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#1e2d47';
-        ctx.beginPath();
-        ctx.arc(-3, -5, 2.4, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = 'rgba(255, 187, 102, 0.9)';
-        ctx.beginPath();
-        ctx.ellipse(-2, 7, 8, 5, -0.4, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.restore();
-      }
-
-      function drawGround() {
-        const w = canvas.clientWidth;
-        const h = canvas.clientHeight;
-        const y = h - G.groundHeight;
-
-        const g = ctx.createLinearGradient(0, y, 0, h);
-        g.addColorStop(0, '#25486b');
-        g.addColorStop(1, '#1a324c');
-        ctx.fillStyle = g;
-        ctx.fillRect(0, y, w, G.groundHeight);
-
-        const stripeOffset = (G.skyTime * G.pipeSpeed * 0.06) % 48;
-        ctx.fillStyle = 'rgba(130, 185, 255, 0.24)';
-        for (let x = -48 + stripeOffset; x < w + 48; x += 48) {
-          ctx.fillRect(x, y + 16, 20, 5);
-        }
-      }
-
-      function drawFrame() {
-        drawBackground();
-        drawPipes();
-        drawGround();
-        drawBird();
-
-        if (!G.started) {
-          ctx.fillStyle = 'rgba(218, 234, 255, 0.82)';
-          ctx.font = '700 18px Inter, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('Space or Click to flap', canvas.clientWidth * 0.5, canvas.clientHeight * 0.23);
-        }
-      }
-
-      // =========================================================
-      // Main loop
-      // =========================================================
-      function frame(ts) {
-        if (!lastTs) lastTs = ts;
-        const dt = Math.min(0.033, (ts - lastTs) / 1000);
-        lastTs = ts;
-
-        update(dt);
-        drawFrame();
-
-        rafId = requestAnimationFrame(frame);
-      }
-
-      // =========================================================
-      // Input events
-      // =========================================================
-      document.addEventListener('keydown', (e) => {
-        if (e.key === ' ' || e.code === 'Space') {
-          e.preventDefault();
-          flap();
-        }
-      }, { passive: false });
-
-      canvasWrap.addEventListener('mousedown', () => flap());
-      canvasWrap.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        flap();
-      }, { passive: false });
-
-      restartBtn.addEventListener('click', () => {
-        resetGame(true);
-      });
-
-      playAgainBtn.addEventListener('click', () => {
-        resetGame(true);
-      });
-
-      // =========================================================
-      // Boot
-      // =========================================================
-      window.addEventListener('resize', resizeCanvas);
-      resizeCanvas();
-      bestText.textContent = String(G.best);
-      renderLeaderboard();
-      resetGame(false);
-      rafId = requestAnimationFrame(frame);
-
-      window.addEventListener('beforeunload', () => {
-        if (rafId) cancelAnimationFrame(rafId);
-      });
-    })();
-  </script>
+  <script src="flappy.js"></script>
 </body>
 </html>
