@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Dogged Slope ⚡ | dogged.no</title>
+  <meta name="description" content="Race down an endless dogged slope, dodge blockers, and climb the leaderboard.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="slope.css">
+</head>
+<body>
+
+<header class="top-bar">
+  <a href="games.html" class="back-link">← Games</a>
+  <div class="game-info">
+    <span class="info-label">SCORE</span>
+    <span id="scoreDisplay" class="info-val">0</span>
+  </div>
+  <div class="game-info">
+    <span class="info-label">HIGH</span>
+    <span id="highDisplay" class="info-val">0</span>
+  </div>
+  <div class="game-info">
+    <span class="info-label">SPEED</span>
+    <span id="speedDisplay" class="info-val">1.0x</span>
+  </div>
+  <div class="top-title">⚡ DOGGED SLOPE</div>
+</header>
+
+<nav class="mobile-nav">
+  <button class="mob-btn active" data-panel="game">🎮 Game</button>
+  <button class="mob-btn" data-panel="settings">⚙️ Info</button>
+  <button class="mob-btn" data-panel="leaderboard">🏆 Board</button>
+</nav>
+
+<div class="layout">
+  <aside class="panel panel-left" id="settingsPanel">
+    <h2 class="panel-title">HOW TO PLAY</h2>
+    <div class="info-box">
+      <p>Steer left and right down the endless slope.</p>
+      <p>Avoid the <strong class="danger">red blockers</strong> and do not fall off the edge.</p>
+      <p>Your score increases by distance and speed.</p>
+      <p>The run gets faster over time.</p>
+    </div>
+
+    <h2 class="panel-title">CONTROLS</h2>
+    <div class="controls-grid">
+      <div class="key-row"><kbd>←</kbd> / <kbd>A</kbd> - Move Left</div>
+      <div class="key-row"><kbd>→</kbd> / <kbd>D</kbd> - Move Right</div>
+      <div class="key-row"><kbd>Space</kbd> - Pause</div>
+      <div class="key-row"><kbd>R</kbd> - Restart</div>
+    </div>
+
+    <h2 class="panel-title">SESSION STATS</h2>
+    <div class="stats-block">
+      <div class="stat-row"><span>Runs</span><span id="statRuns">0</span></div>
+      <div class="stat-row"><span>Best Run</span><span id="statBest">0</span></div>
+      <div class="stat-row"><span>Near Misses</span><span id="statNear">0</span></div>
+    </div>
+  </aside>
+
+  <main class="game-center" id="gamePanel">
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+      <div class="overlay" id="startOverlay">
+        <div class="overlay-box">
+          <h2>⚡ DOGGED SLOPE</h2>
+          <p>Thread the blockers. Keep the pace.</p>
+          <button class="btn-play" id="startBtn">START RUN</button>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="gameOverOverlay">
+        <div class="overlay-box">
+          <h2>💥 CRASHED</h2>
+          <p>Score: <span id="finalScore" class="score-big">0</span></p>
+          <div id="submitSection">
+            <input type="text" id="playerName" maxlength="20" placeholder="Your name..." class="name-input" autocomplete="off">
+            <button class="btn-submit" id="submitBtn">SUBMIT SCORE</button>
+            <div id="submitStatus" class="submit-status"></div>
+          </div>
+          <button class="btn-play" id="retryBtn">RUN AGAIN</button>
+        </div>
+      </div>
+
+      <div class="overlay hidden" id="pauseOverlay">
+        <div class="overlay-box">
+          <h2>⏸ PAUSED</h2>
+          <p>Press <kbd>Space</kbd> to resume</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="touch-controls">
+      <button class="touch-btn" data-dir="left">◀</button>
+      <button class="touch-btn" data-dir="right">▶</button>
+    </div>
+  </main>
+
+  <aside class="panel panel-right" id="leaderboardPanel">
+    <h2 class="panel-title">
+      🏆 LEADERBOARD
+      <button class="refresh-btn" id="refreshLb" title="Refresh">↻</button>
+    </h2>
+    <ol class="lb-list" id="leaderboardList">
+      <li class="lb-empty">Loading...</li>
+    </ol>
+  </aside>
+</div>
+
+<script src="slope.js"></script>
+</body>
+</html>

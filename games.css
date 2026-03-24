@@ -118,6 +118,10 @@ h1, h2, h3 { font-family: 'Bangers', cursive; letter-spacing: 2px; }
 .card-snake:hover { border-color: rgba(76, 175, 80, 0.5); }
 .card-snake .game-card-glow { background: radial-gradient(circle at 30% 50%, rgba(76,175,80,0.08), transparent 70%); }
 
+.card-slope { border-color: rgba(79, 184, 255, 0.25); }
+.card-slope:hover { border-color: rgba(79, 184, 255, 0.55); }
+.card-slope .game-card-glow { background: radial-gradient(circle at 30% 50%, rgba(79,184,255,0.1), transparent 70%); }
+
 .game-card-icon {
   font-size: 3.5rem; flex-shrink: 0;
   width: 80px; height: 80px;
@@ -149,6 +153,7 @@ h1, h2, h3 { font-family: 'Bangers', cursive; letter-spacing: 2px; }
 .card-td .game-card-play { color: var(--cyan); }
 .card-mines .game-card-play { color: var(--purple); }
 .card-snake .game-card-play { color: var(--green); }
+.card-slope .game-card-play { color: #4fb8ff; }
 
 .card-wordle { border-color: rgba(247, 201, 72, 0.2); }
 .card-wordle:hover { border-color: rgba(247, 201, 72, 0.5); }
